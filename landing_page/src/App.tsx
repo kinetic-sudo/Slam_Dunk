@@ -1,121 +1,137 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React from 'react';
+import { motion } from 'framer-motion';
+import { User, ShoppingBag, ChevronLeft, ChevronRight, Play } from 'lucide-react';
 
-function App() {
-  const [count, setCount] = useState(0)
-
+const SlamDunkDashboard = () => {
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
-        </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.tsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
+    <div className="min-h-screen bg-[#FF4C00] p-8 flex items-center justify-center font-sans">
+      {/* Main Container */}
+      <main className="relative w-full h-[90vh] bg-black rounded-[48px] overflow-hidden flex flex-col">
+        
+        {/* Navigation Bar */}
+        <nav className="z-50 flex items-center justify-between px-12 py-10 w-full">
+          {/* Logo */}
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center">
+              <div className="w-5 h-[2px] bg-white rotate-45 absolute" />
+              <div className="w-5 h-[2px] bg-white -rotate-45 absolute" />
+            </div>
+            <div className="leading-none">
+              <h1 className="text-white font-bold text-lg tracking-tighter uppercase leading-tight">SLAM<br/>DUNK</h1>
+            </div>
+          </div>
 
-      <div className="ticks"></div>
+          {/* Links */}
+          <div className="flex items-center gap-12">
+            <a href="#" className="text-brand font-medium uppercase text-sm tracking-widest">Products</a>
+            <a href="#" className="text-white font-medium uppercase text-sm tracking-widest opacity-80 hover:opacity-100 transition-opacity">About us</a>
+            <a href="#" className="text-white font-medium uppercase text-sm tracking-widest opacity-80 hover:opacity-100 transition-opacity">Contacts</a>
+          </div>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+          {/* User & Cart */}
+          <div className="flex items-center gap-6">
+            <button className="text-white opacity-80 hover:opacity-100 transition-opacity"><User size={22} /></button>
+            <div className="relative cursor-pointer">
+              <ShoppingBag size={22} className="text-white opacity-80" />
+              <div className="absolute top-0 right-0 w-2 h-2 bg-brand rounded-full border border-black" />
+            </div>
+          </div>
+        </nav>
+
+        {/* Hero Section */}
+        <div className="relative flex-1 flex items-center justify-center">
+          
+          {/* Background Text */}
+          <motion.h1 
+            initial={{ y: 100, opacity: 0 }}
+            animate={{ y: 0, opacity: 0.3 }}
+            transition={{ duration: 1, ease: "easeOut" }}
+            className="absolute select-none text-grayText font-heading text-[22vw] leading-none uppercase tracking-tighter z-0"
+          >
+            SPALDING
+          </motion.h1>
+
+          {/* Promotion Video Button (Left) */}
+          <div className="absolute left-12 top-1/2 -translate-y-1/2 z-20">
+            <motion.button 
+              whileHover={{ scale: 1.1 }}
+              className="flex items-center gap-4 group"
+            >
+              <div className="w-12 h-12 rounded-full border border-white flex items-center justify-center transition-all group-hover:bg-white group-hover:text-black">
+                <Play size={18} fill="currentColor" />
+              </div>
+              <span className="text-white text-xs uppercase tracking-widest font-medium">Promotion<br/>video</span>
+            </motion.button>
+          </div>
+
+          {/* 3D Basketball */}
+          <motion.div 
+            initial={{ scale: 0.8, opacity: 0 }}
+            animate={{ 
+              scale: 1, 
+              opacity: 1,
+              y: [0, -15, 0] 
+            }}
+            transition={{ 
+              scale: { duration: 0.8 },
+              opacity: { duration: 0.8 },
+              y: { duration: 3, repeat: Infinity, ease: "easeInOut" }
+            }}
+            className="z-10 relative"
+          >
+            {/* Replace with your high-res basketball asset */}
+            <img 
+  src="https://pngimg.com/d/basketball_PNG1103.png" 
+  alt="Basketball" 
+  className="w-[450px] h-[450px] object-contain drop-shadow-[0_35px_35px_rgba(255,76,0,0.3)]"
+/>
+          </motion.div>
+
+          {/* Section Indicator (Right) */}
+          <div className="absolute right-12 top-1/2 -translate-y-1/2 rotate-90 z-20">
+            <span className="text-brand font-bold text-xs tracking-widest">01 / 06</span>
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
+
+        {/* Bottom Bar */}
+        <div className="z-50 flex items-end justify-between px-12 pb-12 w-full">
+          
+          {/* Price & Specs */}
+          <div className="flex flex-col gap-1">
+            <span className="text-brand text-5xl font-bold tracking-tight">$34.99</span>
+            <span className="text-white text-[10px] tracking-[0.2em] font-medium opacity-60">
+              SIZE: 29.5" <span className="mx-1">•</span> OFFICIAL
+            </span>
+          </div>
+
+          {/* Add to Cart */}
+          <div className="absolute left-1/2 -translate-x-1/2 bottom-12">
+            <motion.button 
+              whileHover={{ scale: 1.05, boxShadow: "0px 0px 25px 0px rgba(255,76,0,0.6)" }}
+              className="bg-brand text-white px-16 py-5 rounded-sm font-bold text-sm tracking-widest uppercase transition-shadow"
+            >
+              ADD TO CART
+            </motion.button>
+          </div>
+
+          {/* Carousel Controls */}
+          <div className="flex gap-4">
+            <button className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white hover:border-white transition-colors">
+              <ChevronLeft size={20} />
+            </button>
+            <button className="w-12 h-12 rounded-full border border-white/30 flex items-center justify-center text-white hover:border-white transition-colors">
+              <ChevronRight size={20} />
+            </button>
+          </div>
         </div>
-      </section>
+        
+        {/* Subtle Bottom Ru text */}
+        <div className="absolute bottom-4 left-6">
+          <span className="text-[10px] text-white/20 uppercase">Ru</span>
+        </div>
+      </main>
+    </div>
+  );
+};
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
-}
-
-export default App
+export default SlamDunkDashboard;
