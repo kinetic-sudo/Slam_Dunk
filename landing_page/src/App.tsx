@@ -1,10 +1,10 @@
-import React from 'react';
 import { motion } from 'framer-motion';
 import { User, ShoppingBag, ChevronLeft, ChevronRight, Play } from 'lucide-react';
+import Basketball3D from './component/Basketball3D';
 
 const SlamDunkDashboard = () => {
   return (
-    <div className="min-h-screen bg-[#FF4C00] p-8 flex items-center justify-center font-sans">
+    <div className="min-h-screen bg-brand p-8 flex items-center justify-center font-sans">
       {/* Main Container */}
       <main className="relative w-full h-[90vh] bg-black rounded-[48px] overflow-hidden flex flex-col">
         
@@ -80,11 +80,7 @@ const SlamDunkDashboard = () => {
             className="z-10 relative"
           >
             {/* Replace with your high-res basketball asset */}
-            <img 
-  src="https://pngimg.com/d/basketball_PNG1103.png" 
-  alt="Basketball" 
-  className="w-[450px] h-[450px] object-contain drop-shadow-[0_35px_35px_rgba(255,76,0,0.3)]"
-/>
+            <Basketball3D />
           </motion.div>
 
           {/* Section Indicator (Right) */}
