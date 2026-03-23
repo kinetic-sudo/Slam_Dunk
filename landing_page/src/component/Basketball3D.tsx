@@ -1,122 +1,111 @@
 import { useMemo, useRef } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Environment, OrbitControls } from '@react-three/drei';
+import { Environment } from '@react-three/drei';
 import * as THREE from 'three';
 import { motion } from 'framer-motion';
 
 const BasketballMesh = () => {
   const meshRef = useRef<THREE.Mesh>(null);
 
-  const { colorMap, bumpMap } = useMemo(() => {
-    const size = 1024;
-    const cCanvas = document.createElement('canvas');
-    const bCanvas = document.createElement('canvas');
+  const textures = useMemo(() => {
+    const size = 2048; // High resolution is key for pebbles
+    const canvas = document.createElement('canvas');
+    canvas.width = canvas.height = size;
+    const ctx = canvas.getContext('2d')!;
 
-    cCanvas.width = bCanvas.width = size;
-    cCanvas.height = bCanvas.height = size;
+    // 1. BASE LEATHER COLOR (Deep saturated red-orange)
+    ctx.fillStyle = '#8a1a0b'; 
+    ctx.fillRect(0, 0, size, size);
 
-    const cCtx = cCanvas.getContext('2d')!;
-    const bCtx = bCanvas.getContext('2d')!;
+    // 2. PROCEDURAL PEBBLES (Normal Map logic)
+    const nCanvas = document.createElement('canvas');
+    nCanvas.width = nCanvas.height = size;
+    const nCtx = nCanvas.getContext('2d')!;
+    nCtx.fillStyle = '#8080ff'; // Neutral Normal Color
+    nCtx.fillRect(0, 0, size, size);
 
-    // Base colors
-    cCtx.fillStyle = '#d95c14'; // Basketball orange
-    cCtx.fillRect(0, 0, size, size);
+    // Draw thousands of tiny pebbles
+    for (let i = 0; i < 80000; i++) {
+      const x = Math.random() * size;
+      const y = Math.random() * size;
+      const r = Math.random() * 1.5 + 0.8;
+      
+      // Color variation for leather grain
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, Math.PI * 2);
+      ctx.fillStyle = `rgba(0,0,0,${Math.random() * 0.1})`; 
+      ctx.fill();
 
-    bCtx.fillStyle = '#808080'; // Mid-gray for bump map
-    bCtx.fillRect(0, 0, size, size);
-
-    // Noise for bump map (pebbles)
-    const imgData = bCtx.getImageData(0, 0, size, size);
-    const data = imgData.data;
-    for (let i = 0; i < data.length; i += 4) {
-      const noise = (Math.random() - 0.5) * 60;
-      const val = 128 + noise;
-      data[i] = data[i + 1] = data[i + 2] = val;
-      data[i + 3] = 255;
+      // Normal Map "Bump"
+      nCtx.beginPath();
+      nCtx.arc(x, y, r, 0, Math.PI * 2);
+      nCtx.fillStyle = `rgba(180, 120, 255, 0.3)`; 
+      nCtx.fill();
     }
-    bCtx.putImageData(imgData, 0, 0);
 
-    // Draw seams function
-    const drawSeams = (ctx: CanvasRenderingContext2D, isBump: boolean) => {
-      ctx.lineWidth = isBump ? 12 : 8; // Slightly wider on bump map for indentation
-      ctx.strokeStyle = isBump ? '#000000' : '#1a1a1a';
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
+    // 3. THE SEAMS (Deep, indented rubber)
+    const drawSeams = (context: CanvasRenderingContext2D, isNormal: boolean) => {
+      context.lineWidth = isNormal ? 20 : 16;
+      context.strokeStyle = isNormal ? '#404080' : '#0a0a0a';
+      context.lineCap = 'round';
 
-      // Horizontal equator
-      ctx.beginPath();
-      ctx.moveTo(0, size / 2);
-      ctx.lineTo(size, size / 2);
-      ctx.stroke();
-
-      // Vertical meridian
-      ctx.beginPath();
-      ctx.moveTo(size / 2, 0);
-      ctx.lineTo(size / 2, size);
-      ctx.stroke();
-
-      // Wrap around vertical edges
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.lineTo(0, size);
-      ctx.stroke();
-      ctx.beginPath();
-      ctx.moveTo(size, 0);
-      ctx.lineTo(size, size);
-      ctx.stroke();
-
-      // Left curve
-      ctx.beginPath();
-      for (let y = 0; y <= size; y += 5) {
-        const x = size / 4 + Math.sin((y / size) * Math.PI) * (size / 5.5);
-        if (y === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
+      const path = () => {
+        // Vertical/Horizontal
+        context.beginPath(); context.moveTo(size/2, 0); context.lineTo(size/2, size); context.stroke();
+        context.beginPath(); context.moveTo(0, size/2); context.lineTo(size, size/2); context.stroke();
+        
+        // Panels
+        const drawCurve = (x: number, inv: boolean) => {
+          context.beginPath();
+          for(let y=0; y<=size; y+=10){
+            const xPos = x + (inv ? -1 : 1) * Math.sin((y/size)*Math.PI) * (size/4.2);
+            y === 0 ? context.moveTo(xPos, y) : context.lineTo(xPos, y);
+          }
+          context.stroke();
+        };
+        drawCurve(size/4, false);
+        drawCurve(3*size/4, true);
       }
-      ctx.stroke();
-
-      // Right curve
-      ctx.beginPath();
-      for (let y = 0; y <= size; y += 5) {
-        const x = (3 * size) / 4 - Math.sin((y / size) * Math.PI) * (size / 5.5);
-        if (y === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      }
-      ctx.stroke();
+      path();
     };
 
-    drawSeams(cCtx, false);
-    drawSeams(bCtx, true);
+    drawSeams(ctx, false);
+    drawSeams(nCtx, true);
 
-    const colorTex = new THREE.CanvasTexture(cCanvas);
-    const bumpTex = new THREE.CanvasTexture(bCanvas);
+    const colorTex = new THREE.CanvasTexture(canvas);
+    const normalTex = new THREE.CanvasTexture(nCanvas);
+    
+    // Set wrapping and anisotropy for sharpness
+    [colorTex, normalTex].forEach(t => {
+      t.wrapS = t.wrapT = THREE.RepeatWrapping;
+      t.anisotropy = 16;
+    });
 
-    colorTex.anisotropy = 16;
-    bumpTex.anisotropy = 16;
-
-    // Ensure seamless wrapping
-    colorTex.wrapS = THREE.RepeatWrapping;
-    colorTex.wrapT = THREE.ClampToEdgeWrapping;
-    bumpTex.wrapS = THREE.RepeatWrapping;
-    bumpTex.wrapT = THREE.ClampToEdgeWrapping;
-
-    return { colorMap: colorTex, bumpMap: bumpTex };
+    return { colorTex, normalTex };
   }, []);
 
-  useFrame((_, delta) => {
-    if (!meshRef.current) return;
-    meshRef.current.rotation.y += delta * 0.5;
-    meshRef.current.rotation.x += delta * 0.2;
+  useFrame((state) => {
+    if (meshRef.current) {
+      meshRef.current.rotation.y += 0.005;
+      // Subtle float yoyo 3s loop matches spec
+      meshRef.current.position.y = Math.sin(state.clock.elapsedTime * (Math.PI / 1.5)) * 0.1;
+    }
   });
 
   return (
-    <mesh ref={meshRef}>
-      <sphereGeometry args={[2.5, 64, 64]} />
-      <meshStandardMaterial
-        map={colorMap}
-        bumpMap={bumpMap}
-        bumpScale={0.015}
-        roughness={0.8}
-        metalness={0.1}
+    <mesh ref={meshRef} castShadow>
+      <sphereGeometry args={[2.5, 128, 128]} />
+      <meshPhysicalMaterial
+        map={textures.colorTex}
+        normalMap={textures.normalTex}
+        normalScale={new THREE.Vector2(1.5, 1.5)} // This gives the pebbles their "pop"
+        roughness={0.8} // High roughness for leather feel
+        metalness={0.0}
+        clearcoat={0.05} // Subtle "new ball" sheen
+        clearcoatRoughness={0.4}
+        sheen={1}
+        sheenRoughness={0.8}
+        sheenColor="#ff4c00" // Subsurface scattering feel
       />
     </mesh>
   );
@@ -124,32 +113,40 @@ const BasketballMesh = () => {
 
 export default function Basketball3D() {
   return (
-    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10">
+    <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-10 w-full h-full">
       <motion.div
         initial={{ scale: 0.8, y: 50, opacity: 0 }}
         animate={{ scale: 1, y: 0, opacity: 1 }}
-        transition={{ duration: 0.9, type: 'spring', bounce: 0.3 }}
-        className="relative flex flex-col items-center"
+        transition={{ duration: 0.9, ease: "easeOut" }}
+        className="relative flex flex-col items-center justify-center w-full h-full"
       >
         <motion.div
-          animate={{ y: [-15, 15, -15] }}
+          animate={{ y: [-10, 10, -10] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="relative z-10 w-[200px] h-[200px] md:w-[300px] md:h-[300px] lg:w-[450px] lg:h-[450px] pointer-events-auto cursor-grab active:cursor-grabbing"
+          className="relative z-10 w-[300px] h-[300px] pointer-events-auto cursor-grab active:cursor-grabbing"
         >
-          <Canvas camera={{ position: [0, 0, 6], fov: 45 }} gl={{ antialias: true, alpha: true }}>
-            <ambientLight intensity={0.6} />
-            <directionalLight position={[5, 5, 5]} intensity={1.5} castShadow />
-            <pointLight position={[-5, -5, -5]} intensity={0.5} />
-            <Environment preset="city" />
+          <Canvas camera={{ position: [0, 0, 7.5], fov: 40 }} gl={{ alpha: true, antialias: true }}>
+            <ambientLight intensity={0.15} />
+            
+            {/* Top-Left Key Light matching Screenshot Highlight */}
+            <directionalLight position={[-5, 8, 8]} intensity={2.5} color="#ffffff" />
+            
+            {/* Soft Fill Light Bottom-Right */}
+            <directionalLight position={[5, -5, 5]} intensity={0.5} color="#ffaa88" />
+
+            {/* Subtle Rim Light Right Side */}
+            <pointLight position={[10, 0, -5]} intensity={5} color="#ff4c00" />
+            
             <BasketballMesh />
-            <OrbitControls enableZoom={false} enablePan={false} />
+            <Environment preset="studio" />
           </Canvas>
         </motion.div>
-        {/* Shadow */}
+        
+        {/* Soft shadow below */}
         <motion.div
-          animate={{ scale: [1, 0.8, 1], opacity: [0.5, 0.2, 0.5] }}
+          animate={{ scale: [1, 0.9, 1], opacity: [0.6, 0.4, 0.6] }}
           transition={{ duration: 3, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -bottom-6 md:-bottom-8 lg:-bottom-12 w-[100px] md:w-[150px] lg:w-[200px] h-[10px] md:h-[15px] lg:h-[20px] bg-black/80 blur-xl rounded-full z-0"
+          className="absolute top-[65%] w-[180px] h-[15px] bg-black blur-xl rounded-full z-0"
         />
       </motion.div>
     </div>

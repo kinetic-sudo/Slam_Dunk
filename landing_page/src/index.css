@@ -1,24 +1,20 @@
 @import "tailwindcss";
 
-/* 1. Import Fonts */
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700&display=swap');
 
 @theme {
-  /* 2. Define Theme Variables (Tailwind v4 style) */
   --color-brand: #FF4C00;
   --color-gray-text: #7A7A7A;
-
   --font-heading: "Anton", sans-serif;
   --font-sans: "Inter", sans-serif;
 }
 
-/* 3. Global Reset */
 @layer base {
   *, ::after, ::before {
     box-sizing: border-box;
   }
   body {
-    @apply bg-black text-white antialiased;
+    @apply bg-black text-white antialiased overflow-hidden;
     margin: 0;
     font-family: var(--font-sans);
   }
