@@ -1,11 +1,32 @@
-import { motion } from 'framer-motion';
+import React, { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { User, ShoppingBag, ChevronLeft, ChevronRight, Play } from 'lucide-react';
-import Basketball3D from './component/Basketball3D'; // Adjust path if needed
+import Basketball3D from './component/Basketball3D'; // Make sure this path matches your file structure
+
+const sections = ["hero", "stats", "flight", "details"];
+
+// Helper component for the metrics
+const Metric = ({ label, sub }: any) => (
+  <div>
+    <div className="text-white text-3xl font-bold font-heading">{label}</div>
+    <div className="text-white/60 text-sm uppercase tracking-widest mt-1">{sub}</div>
+  </div>
+);
 
 export default function SlamDunkDashboard() {
+  const [index, setIndex] = useState(0);
+  const isDetailsPage = index > 0;
+
+  const nextSection = () => setIndex((prev) => (prev + 1) % sections.length);
+  const prevSection = () => setIndex((prev) => (prev - 1 + sections.length) % sections.length);
+
+  // Format index for display (e.g., "01 / 04")
+  const currentStep = String(index + 1).padStart(2, '0');
+  const totalSteps = String(sections.length).padStart(2, '0');
+
   return (
-    // Outer Container: Full viewport, thick 32px orange border
-    <div className="h-screen w-screen bg-brand p-[32px] flex items-center justify-center font-sans overflow-hidden">
+    // Outer Container: Full viewport, thick 32px orange border (using standard Tailwind colors/arbitrary values here for your "bg-brand")
+    <div className="h-screen w-screen bg-[#ff4c00] p-[32px] flex items-center justify-center font-sans overflow-hidden">
       
       {/* Main Content Area: Inset with 32px radius */}
       <main className="relative w-full h-full bg-black rounded-[32px] overflow-hidden flex flex-col">
@@ -27,19 +48,19 @@ export default function SlamDunkDashboard() {
 
           {/* Links */}
           <div className="flex items-center gap-[32px]">
-            <a href="#" className="text-brand font-medium uppercase text-[18px] tracking-wide">Products</a>
-            <a href="#" className="text-white font-medium uppercase text-[18px] tracking-wide hover:text-brand transition-colors">About us</a>
-            <a href="#" className="text-white font-medium uppercase text-[18px] tracking-wide hover:text-brand transition-colors">Contacts</a>
+            <a href="#" className="text-[#ff4c00] font-medium uppercase text-[18px] tracking-wide">Products</a>
+            <a href="#" className="text-white font-medium uppercase text-[18px] tracking-wide hover:text-[#ff4c00] transition-colors">About us</a>
+            <a href="#" className="text-white font-medium uppercase text-[18px] tracking-wide hover:text-[#ff4c00] transition-colors">Contacts</a>
           </div>
 
           {/* User & Cart Icons */}
           <div className="flex items-center gap-[24px]">
-            <button className="text-white hover:text-brand transition-colors">
+            <button className="text-white hover:text-[#ff4c00] transition-colors">
               <User size={24} strokeWidth={1.5} />
             </button>
-            <button className="relative text-white hover:text-brand transition-colors">
+            <button className="relative text-white hover:text-[#ff4c00] transition-colors">
               <ShoppingBag size={24} strokeWidth={1.5} />
-              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-brand rounded-full border-2 border-black" />
+              <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-[#ff4c00] rounded-full border-2 border-black" />
             </button>
           </div>
         </nav>
@@ -50,7 +71,7 @@ export default function SlamDunkDashboard() {
           {/* Promotion Video Button (Left) */}
           <div className="absolute left-[48px] top-1/2 -translate-y-1/2 z-20">
             <motion.button 
-              whileHover={{ scale: 1.1, textShadow: "0px 0px 8px rgba(255,255,255,0.5)" }}
+              whileHover={{ scale: 1.05, textShadow: "0px 0px 8px rgba(255,255,255,0.5)" }}
               transition={{ duration: 0.2 }}
               className="flex items-center gap-4 group cursor-pointer"
             >
@@ -64,18 +85,24 @@ export default function SlamDunkDashboard() {
           </div>
 
           {/* Huge Background Text */}
-          <motion.h1 
-            initial={{ y: 50, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            transition={{ duration: 0.8, ease: "easeOut" }}
-            className="absolute select-none text-grayText font-heading text-[180px] lg:text-[220px] leading-[1.1] tracking-[-0.02em] uppercase z-0 m-0"
-          >
-            SPALDING
-          </motion.h1>
+          <AnimatePresence>
+            {index === 0 && (
+              <motion.div 
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0, x: -100 }}
+                className="absolute inset-0 flex items-center justify-center pointer-events-none"
+              >
+                <motion.h1 className="text-gray-800 font-heading text-[18vw] uppercase opacity-30 select-none m-0 leading-none">
+                  SPALDING
+                </motion.h1>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {/* 3D Basketball Container */}
-          <div className="z-10 relative w-full h-full flex items-center justify-center">
-            <Basketball3D />
+          <div className="z-10 absolute inset-0 w-full h-full">
+            <Basketball3D isExploded={isDetailsPage} />
           </div>
 
           {/* Section Indicator (Right) */}
@@ -85,21 +112,30 @@ export default function SlamDunkDashboard() {
             transition={{ delay: 0.4, duration: 0.8 }}
             className="absolute right-[48px] top-1/2 -translate-y-1/2 rotate-90 z-20 origin-center"
           >
-            <span className="text-brand font-bold text-[14px] tracking-[0.1em]">01 / 06</span>
+            <span className="text-[#ff4c00] font-bold text-[14px] tracking-[0.1em]">
+              {currentStep} / {totalSteps}
+            </span>
           </motion.div>
         </div>
 
-        {/* Bottom Bar Elements (Absolutely Positioned for exact spacing) */}
-        
-        {/* Left: Price & Specs */}
-        <div className="absolute left-[48px] bottom-[32px] z-20 flex flex-col gap-0">
-          <span className="text-brand text-[36px] font-bold tracking-tight leading-none mb-1">
-            $34.99
-          </span>
-          <span className="text-white text-[14px] tracking-wider font-normal opacity-80 uppercase">
-            SIZE: 29.5" <span className="mx-1.5 opacity-50">•</span> OFFICIAL
-          </span>
-        </div>
+        {/* Price & Specs Overlay */}
+        <AnimatePresence>
+          {isDetailsPage && (
+            <motion.div 
+              initial={{ opacity: 0, x: -50 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: -50 }}
+              className="absolute left-[48px] top-[30%] z-20 pointer-events-none"
+            >
+              <span className="text-[#ff4c00] text-xs font-bold uppercase tracking-tighter">Performance Metrics</span>
+              <h2 className="text-white text-7xl font-heading uppercase leading-none mt-2">Elite<br/>Control</h2>
+              <div className="mt-8 space-y-6">
+                <Metric label="100%" sub="Microfiber Composite" />
+                <Metric label="0.5mm" sub="Pebble Depth" />
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         {/* Center: Add to Cart Button */}
         <div className="absolute left-1/2 -translate-x-1/2 bottom-[32px] z-20">
@@ -110,7 +146,7 @@ export default function SlamDunkDashboard() {
               boxShadow: "0px 10px 30px rgba(255, 76, 0, 0.6)" 
             }}
             transition={{ duration: 0.2 }}
-            className="bg-brand text-white px-[48px] py-[16px] rounded-sm font-medium text-[18px] tracking-wide uppercase shadow-[0px_4px_20px_rgba(255,76,0,0.4)] cursor-pointer"
+            className="bg-[#ff4c00] text-white px-[48px] py-[16px] rounded-sm font-medium text-[18px] tracking-wide uppercase shadow-[0px_4px_20px_rgba(255,76,0,0.4)] cursor-pointer"
           >
             ADD TO CART
           </motion.button>
@@ -119,6 +155,7 @@ export default function SlamDunkDashboard() {
         {/* Right: Carousel Controls */}
         <div className="absolute right-[48px] bottom-[32px] z-20 flex gap-4">
           <motion.button 
+            onClick={prevSection}
             whileHover={{ borderWidth: "2px", backgroundColor: "#fff", color: "#000" }}
             transition={{ duration: 0.2 }}
             className="w-[48px] h-[48px] rounded-full border border-white/50 flex items-center justify-center text-white cursor-pointer box-border"
@@ -126,6 +163,7 @@ export default function SlamDunkDashboard() {
             <ChevronLeft size={20} strokeWidth={1.5} />
           </motion.button>
           <motion.button 
+            onClick={nextSection}
             whileHover={{ borderWidth: "2px", backgroundColor: "#fff", color: "#000" }}
             transition={{ duration: 0.2 }}
             className="w-[48px] h-[48px] rounded-full border border-white/50 flex items-center justify-center text-white cursor-pointer box-border"
@@ -135,7 +173,7 @@ export default function SlamDunkDashboard() {
         </div>
         
         {/* Very bottom left "Ru" text matching screenshot edge */}
-        <div className="absolute bottom-2 left-4 z-20">
+        <div className="absolute bottom-4 left-[48px] z-20">
           <span className="text-[10px] text-white/30 uppercase">Ru</span>
         </div>
       </main>
