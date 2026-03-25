@@ -3,19 +3,45 @@
 @import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;500;700&display=swap');
 
 @theme {
-  --color-brand: #FF4C00;
-  --color-gray-text: #7A7A7A;
   --font-heading: "Anton", sans-serif;
-  --font-sans: "Inter", sans-serif;
+  --font-body: "Inter", sans-serif;
+  --color-bg-primary: #111111;
+  --color-accent: #FF3C00;
+  --color-text-primary: #FFFFFF;
+  --color-text-secondary: #B0B0B0;
+  --color-cta-secondary: #00CFFF;
 }
 
-@layer base {
-  *, ::after, ::before {
-    box-sizing: border-box;
-  }
-  body {
-    @apply bg-black text-white antialiased overflow-hidden;
-    margin: 0;
-    font-family: var(--font-sans);
-  }
+body {
+  background-color: var(--color-accent);
+  padding: 24px;
+  min-height: 100vh;
+  margin: 0;
+  font-family: var(--font-body);
+  color: var(--color-text-primary);
+}
+
+#root {
+  background-color: var(--color-bg-primary);
+  border-radius: 32px;
+  min-height: calc(100vh - 48px);
+  overflow-x: hidden;
+  position: relative;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+}
+
+/* Hide scrollbar for cleaner look */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-bg-primary);
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb {
+  background: #333;
+  border-radius: 8px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-accent);
 }
