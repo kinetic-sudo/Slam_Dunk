@@ -1,7 +1,6 @@
 import { useEffect, useRef } from 'react';
 import { useFrame } from '@react-three/fiber';
 import * as THREE from 'three';
-import { motion } from 'framer-motion-3d';
 
 type ActiveProduct = {
   id: string;
@@ -14,61 +13,66 @@ type ActiveProduct = {
 
 export default function BasketballModel({ activeProduct }: { activeProduct: ActiveProduct }) {
   const groupRef = useRef<THREE.Group>(null);
-  
-  // Create refs for the materials so we can animate them
   const ballMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
   const seamMaterialRef = useRef<THREE.MeshStandardMaterial>(null);
+  const spinVelocityRef = useRef(0);
 
-  // Target colors for smooth interpolation
-  const targetBallColor = new THREE.Color(activeProduct.ballColor);
-  const targetSeamColor = new THREE.Color(activeProduct.seamColor);
+  const targetBallColor = useRef(new THREE.Color(activeProduct.ballColor));
+  const targetSeamColor = useRef(new THREE.Color(activeProduct.seamColor));
 
-  // If you have a real GLTF model, load it here:
-  // const { nodes, materials } = useGLTF('/models/basketball.glb');
-
-  // Trigger a spin animation when the product changes
   useEffect(() => {
-    if (groupRef.current) {
-      // Add a quick 360-degree spin to the current rotation
-      groupRef.current.rotation.y += Math.PI * 2;
-    }
+    targetBallColor.current = new THREE.Color(activeProduct.ballColor);
+    targetSeamColor.current = new THREE.Color(activeProduct.seamColor);
+    // Kick a fast spin
+    spinVelocityRef.current = Math.PI * 6;
   }, [activeProduct]);
 
   useFrame((_, delta) => {
-    // 1. Smoothly interpolate colors (lerp)
     if (ballMaterialRef.current) {
-      ballMaterialRef.current.color.lerp(targetBallColor, 0.1);
+      ballMaterialRef.current.color.lerp(targetBallColor.current, 0.08);
     }
     if (seamMaterialRef.current) {
-      seamMaterialRef.current.color.lerp(targetSeamColor, 0.1);
+      seamMaterialRef.current.color.lerp(targetSeamColor.current, 0.08);
     }
 
-    // 2. Add a constant, slow idle rotation
     if (groupRef.current) {
-      groupRef.current.rotation.y += delta * 0.2;
-      groupRef.current.rotation.x += delta * 0.1;
+      // Decay the spin velocity
+      spinVelocityRef.current *= 0.92;
+      const totalRotation = delta * 0.3 + spinVelocityRef.current * delta;
+      groupRef.current.rotation.y += totalRotation;
+      groupRef.current.rotation.x += delta * 0.08;
     }
   });
 
   return (
-    <motion.group>
-      {/* NOTE: Replace this generic sphere with your actual GLTF nodes.
-        Example using GLTF nodes:
-        <mesh geometry={nodes.BallMesh.geometry}>
-          <meshStandardMaterial ref={ballMaterialRef} roughness={0.4} />
-        </mesh>
-        <mesh geometry={nodes.SeamsMesh.geometry}>
-          <meshStandardMaterial ref={seamMaterialRef} roughness={0.8} />
-        </mesh>
-      */}
+    <group ref={groupRef}>
+      {/* Main ball */}
+      <mesh castShadow receiveShadow>
+        <sphereGeometry args={[2, 64, 64]} />
+        <meshStandardMaterial
+          ref={ballMaterialRef}
+          color={activeProduct.ballColor}
+          roughness={0.35}
+          metalness={0.15}
+        />
+      </mesh>
 
-      <group ref={groupRef}>
-        {/* Placeholder Geometry to demonstrate the effect */}
-        <mesh castShadow receiveShadow>
-          <sphereGeometry args={[2, 64, 64]} />
-          <meshStandardMaterial ref={ballMaterialRef} roughness={0.3} metalness={0.2} />
+      {/* Seam lines — 3 great circles at different angles */}
+      {[
+        [0, 0, 0],
+        [Math.PI / 2, 0, 0],
+        [0, 0, Math.PI / 2],
+      ].map((rotation, i) => (
+        <mesh key={i} rotation={rotation as [number, number, number]}>
+          <torusGeometry args={[2.01, 0.022, 8, 128]} />
+          <meshStandardMaterial
+            ref={i === 0 ? seamMaterialRef : undefined}
+            color={activeProduct.seamColor}
+            roughness={0.8}
+            metalness={0}
+          />
         </mesh>
-      </group>
-    </motion.group>
+      ))}
+    </group>
   );
 }
