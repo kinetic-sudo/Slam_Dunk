@@ -1,6 +1,5 @@
 
 
-import React from 'react';
 import NavigationBar from './component/NavigationBar';
 import HeroSection from './component/HeroSection';
 import ProductDetailsSection from './component/ProductDetailSection';

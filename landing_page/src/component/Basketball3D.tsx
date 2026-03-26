@@ -51,7 +51,7 @@ export default function BasketballModel({ activeProduct }: { activeProduct: Acti
   });
 
   return (
-    <motion.group ref={groupRef}>
+    <motion.group>
       {/* NOTE: Replace this generic sphere with your actual GLTF nodes.
         Example using GLTF nodes:
         <mesh geometry={nodes.BallMesh.geometry}>
@@ -62,11 +62,13 @@ export default function BasketballModel({ activeProduct }: { activeProduct: Acti
         </mesh>
       */}
 
-      {/* Placeholder Geometry to demonstrate the effect */}
-      <mesh castShadow receiveShadow>
-        <sphereGeometry args={[2, 64, 64]} />
-        <meshStandardMaterial ref={ballMaterialRef} roughness={0.3} metalness={0.2} />
-      </mesh>
+      <group ref={groupRef}>
+        {/* Placeholder Geometry to demonstrate the effect */}
+        <mesh castShadow receiveShadow>
+          <sphereGeometry args={[2, 64, 64]} />
+          <meshStandardMaterial ref={ballMaterialRef} roughness={0.3} metalness={0.2} />
+        </mesh>
+      </group>
     </motion.group>
   );
 }
