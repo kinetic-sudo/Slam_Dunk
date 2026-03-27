@@ -13,9 +13,6 @@ const products = [
   { id: "stealth", name: "STEALTH", price: "$79.99", themeColor: "#ff0055", ballColor: "#ff2a5f", seamColor: "#220011" },
 ];
 
-// Nav height is 80px, #root padding accounts for 48px body padding
-const HERO_HEIGHT = 'calc(100vh - 48px - 80px)';
-
 export default function HeroSection() {
   const containerRef  = useRef<HTMLDivElement>(null);
   const bgTextRef     = useRef<HTMLHeadingElement>(null);
@@ -27,7 +24,7 @@ export default function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // Sync body (outer frame) color with active product
+  // Sync outer body colour with active product
   useEffect(() => {
     document.body.style.backgroundColor = activeProduct.themeColor;
   }, [activeProduct.themeColor]);
@@ -52,11 +49,11 @@ export default function HeroSection() {
 
   useGSAP(() => {
     const tl = gsap.timeline();
-    tl.fromTo(bgTextRef.current,    { opacity: 0, scale: 0.92 }, { opacity: 0.09, scale: 1, duration: 1,   ease: "power3.out"   })
-      .fromTo(canvasWrapRef.current, { opacity: 0, scale: 0.7  }, { opacity: 1,   scale: 1, duration: 1.2, ease: "back.out(1.4)" }, "-=0.7")
-      .fromTo(priceRef.current,      { opacity: 0, x: -20      }, { opacity: 1,   x: 0,     duration: 0.5, ease: "power2.out"   }, "-=0.4")
-      .fromTo(btnRef.current,        { opacity: 0, y: 16       }, { opacity: 1,   y: 0,     duration: 0.5, ease: "power2.out"   }, "-=0.3")
-      .fromTo(arrowsRef.current,     { opacity: 0              }, { opacity: 1,              duration: 0.4                       }, "-=0.2");
+    tl.fromTo(bgTextRef.current,    { opacity: 0, scale: 0.92 }, { opacity: 0.09, scale: 1, duration: 1,   ease: "power3.out"    })
+      .fromTo(canvasWrapRef.current, { opacity: 0, scale: 0.7  }, { opacity: 1,   scale: 1, duration: 1.2, ease: "back.out(1.4)"  }, "-=0.7")
+      .fromTo(priceRef.current,      { opacity: 0, x: -20      }, { opacity: 1,   x: 0,     duration: 0.5, ease: "power2.out"    }, "-=0.4")
+      .fromTo(btnRef.current,        { opacity: 0, y: 16       }, { opacity: 1,   y: 0,     duration: 0.5, ease: "power2.out"    }, "-=0.3")
+      .fromTo(arrowsRef.current,     { opacity: 0              }, { opacity: 1,              duration: 0.4                        }, "-=0.2");
 
     gsap.to(canvasWrapRef.current, { y: "-=14", duration: 2.4, yoyo: true, repeat: -1, ease: "sine.inOut" });
   }, { scope: containerRef });
@@ -75,7 +72,8 @@ export default function HeroSection() {
     <section
       ref={containerRef}
       className="relative w-full overflow-hidden bg-[#0a0a0a]"
-      style={{ height: HERO_HEIGHT }}
+      // 100vh minus: 24px top body padding + 24px bottom body padding + 80px nav
+      style={{ height: 'calc(100vh - 48px - 80px)' }}
     >
       {/* Background name text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -119,6 +117,7 @@ export default function HeroSection() {
 
       {/* Bottom bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-8 md:px-14 pb-8 md:pb-12">
+
         {/* Price */}
         <div ref={priceRef} className="flex flex-col items-start">
           <span
