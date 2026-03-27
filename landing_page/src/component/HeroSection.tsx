@@ -26,11 +26,7 @@ export default function HeroSection() {
 
   useEffect(() => {
     document.body.style.backgroundColor = activeProduct.themeColor;
-
-    return() => {
-        document.body.style.backgroundColor = '#080808';
-    }
-  }, [activeProduct.themeColor])
+  }, [activeProduct.themeColor]);
 
   const dragRef = useRef({ x: 0, y: 0, dragging: false });
   const [drag, setDrag] = useState({ x: 0, y: 0, dragging: false });
@@ -74,7 +70,7 @@ export default function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative w-full overflow-hidden bg-[#0a0a0a]"
+      className="relative w-full overflow-hidden"
       style={{ minHeight: 'calc(100vh - 48px - 80px)' }} /* full card height minus nav */
     >
       {/* Background name text */}

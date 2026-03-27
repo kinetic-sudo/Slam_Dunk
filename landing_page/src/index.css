@@ -12,25 +12,30 @@
 }
 
 body {
-  background-color: #FF3C00; /* Default starting color */
+  background-color: #FF3C00; /* Starting color */
   padding: 24px;
   min-height: 100vh;
   margin: 0;
   font-family: var(--font-body);
   color: var(--color-text-primary);
-  /* Add this line for smooth background color switching */
-  transition: background-color 0.7s cubic-bezier(0.4, 0, 0.2, 1); 
+  /* Added: Smooth transition for the outer frame color */
+  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #root {
   background-color: var(--color-bg-primary);
   border-radius: 2rem;
-  min-height: calc(100vh - 48px);
+  /* Ensure root stays 100vh to maintain the landscape frame */
+  height: calc(100vh - 48px);
+  overflow-y: auto; /* Enable scrolling inside the landscape container */
   overflow-x: hidden;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.05);
 }
+
+/* Optional: Hide scrollbar for a cleaner look */
+#root::-webkit-scrollbar { display: none; }
 
 /* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
