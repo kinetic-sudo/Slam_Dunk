@@ -8,38 +8,49 @@ import Footer from './component/Footer';
 
 export default function App() {
   return (
-    // Added h-full and relative to the main container
-    <div className="w-full h-full flex flex-col relative">
-      
-      {/* 1. Changed to absolute so it floats OVER the hero without pushing it down */}
-      <div className="absolute top-0 w-full z-50">
+    <>
+      {/*
+        ── LAYER 1: Nav — always on top, fixed to viewport ──────────────
+        Fixed inside #root context using sticky. Since #root has overflow:hidden,
+        we use a portal-like approach: nav is sticky at z:50, sits above everything.
+      */}
+      <div className="sticky top-0 left-0 right-0 z-50 w-full">
         <NavigationBar />
       </div>
 
-      <main className="flex flex-col relative h-full">
-        
-        {/* 2. Forced Hero wrapper to exactly match your root container's height. 
-               This guarantees the sliding layer is pushed completely out of view on load. */}
-        <div className="sticky top-0 h-[calc(100vh-48px)] w-full z-0 flex-shrink-0">
-          <HeroSection />
-        </div>
+      {/*
+        ── LAYER 2: Hero — sticky, acts as the "fixed" background layer ──
+        sticky + top equal to nav height means it pins in place.
+        The content layer below has enough height to scroll over it.
+      */}
+      <div
+        className="sticky w-full z-0"
+        style={{ top: '80px' }}
+      >
+        <HeroSection />
+      </div>
 
-        {/* 3. Sliding layer naturally sits below the 100vh hero wrapper */}
-        <div
-          className="relative z-10 flex flex-col"
-          style={{
-            background: '#0a0a0a',
-            boxShadow: '0 -40px 80px rgba(0,0,0,0.95)',
-            borderTop: '1px solid rgba(255,255,255,0.05)',
-          }}
-        >
-          <ProductDetailsSection />
-          <SpecsSection />
-          <ChampionSection />
-          <GravityPromoSection />
-          <Footer />
-        </div>
-      </main>
-    </div>
+      {/*
+        ── LAYER 3: Content — slides UP over the hero ───────────────────
+        z-10 > z-0 so it covers the hero.
+        No margin-top needed — sticky hero doesn't push document flow.
+        The shadow + border creates a clean "sheet lifting off" effect.
+      */}
+      <div
+        className="relative z-10 flex flex-col"
+        style={{
+          background: '#0a0a0a',
+          boxShadow: '0 -60px 100px 20px rgba(0,0,0,1)',
+          borderTop: '1px solid rgba(255,255,255,0.06)',
+          borderRadius: '2rem 2rem 0 0',
+        }}
+      >
+        <ProductDetailsSection />
+        <SpecsSection />
+        <ChampionSection />
+        <GravityPromoSection />
+        <Footer />
+      </div>
+    </>
   );
 }

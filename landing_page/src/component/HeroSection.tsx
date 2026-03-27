@@ -24,7 +24,6 @@ export default function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // Sync outer body colour with active product
   useEffect(() => {
     document.body.style.backgroundColor = activeProduct.themeColor;
   }, [activeProduct.themeColor]);
@@ -62,7 +61,7 @@ export default function HeroSection() {
     if (index === activeIndex) return;
     gsap.fromTo(canvasWrapRef.current, { scale: 0.94 }, { scale: 1, duration: 0.5, ease: "back.out(2)" });
     gsap.fromTo(bgTextRef.current, { opacity: 0, scale: 0.96 }, { opacity: 0.09, scale: 1, duration: 0.45, ease: "power2.out" });
-    gsap.fromTo(priceRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" });
+    gsap.fromTo(priceRef.current,  { opacity: 0, y: 8        }, { opacity: 1,   y: 0,     duration: 0.35, ease: "power2.out" });
     setActiveIndex(index);
   };
   const handlePrev = () => handleSelect((activeIndex - 1 + products.length) % products.length);
@@ -72,8 +71,7 @@ export default function HeroSection() {
     <section
       ref={containerRef}
       className="relative w-full overflow-hidden bg-[#0a0a0a]"
-      // 100vh minus: 24px top body padding + 24px bottom body padding + 80px nav
-      style={{ height: 'calc(100vh - 48px - 80px)' }}
+      style={{ height: 'calc(100svh - 48px - 80px)' }}
     >
       {/* Background name text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -117,8 +115,6 @@ export default function HeroSection() {
 
       {/* Bottom bar */}
       <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-8 md:px-14 pb-8 md:pb-12">
-
-        {/* Price */}
         <div ref={priceRef} className="flex flex-col items-start">
           <span
             className="font-heading leading-none transition-colors duration-500"
@@ -131,7 +127,6 @@ export default function HeroSection() {
           </span>
         </div>
 
-        {/* CTA */}
         <button
           ref={btnRef}
           className="font-heading uppercase tracking-widest transition-all duration-300 hover:scale-105"
@@ -146,7 +141,6 @@ export default function HeroSection() {
           Add to Cart
         </button>
 
-        {/* Arrows */}
         <div ref={arrowsRef} className="flex items-center gap-3">
           <button
             onClick={handlePrev}

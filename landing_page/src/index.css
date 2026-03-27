@@ -11,33 +11,34 @@
   --color-cta-secondary: #00CFFF;
 }
 
-/* The outer coloured frame */
+*, *::before, *::after { box-sizing: border-box; }
+
 body {
   background-color: #FF3C00;
+  margin: 0;
   padding: 24px;
   min-height: 100vh;
-  margin: 0;
   font-family: var(--font-body);
   color: var(--color-text-primary);
   transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  /* body is the scroll container — NOT #root */
-  overflow-y: auto;
   overflow-x: hidden;
 }
 
-/* The inner dark card — purely visual, does NOT scroll itself */
+/*
+  clip-path gives us rounded corners WITHOUT overflow:hidden.
+  overflow:hidden would break position:sticky on children.
+*/
 #root {
   background-color: var(--color-bg-primary);
-  border-radius: 2rem;
   min-height: calc(100vh - 48px);
-  overflow: visible; /* must be visible so sticky works on children */
   position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border-radius: 2rem;
+  clip-path: inset(0 round 2rem);
+  box-shadow: 0 25px 50px -12px rgba(0,0,0,0.7);
+  border: 1px solid rgba(255,255,255,0.05);
 }
 
-/* Scrollbar on body */
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #080808; border-radius: 8px; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 8px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: #080808; }
+::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 6px; }
+::-webkit-scrollbar-thumb:hover { background: #444; }
