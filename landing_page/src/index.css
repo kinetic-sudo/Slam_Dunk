@@ -12,32 +12,32 @@
 }
 
 body {
-  background-color: #FF3C00; /* Starting color */
+  background-color: #FF3C00;
   padding: 24px;
   min-height: 100vh;
   margin: 0;
   font-family: var(--font-body);
   color: var(--color-text-primary);
-  /* Added: Smooth transition for the outer frame color */
   transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 #root {
   background-color: var(--color-bg-primary);
   border-radius: 2rem;
-  /* Ensure root stays 100vh to maintain the landscape frame */
   height: calc(100vh - 48px);
-  overflow-y: auto; /* Enable scrolling inside the landscape container */
+  /* KEY FIX: overflow-y scroll must be on #root for sticky to work
+     sticky children need an overflow:visible ancestor — but since #root
+     IS the scroll container, we just make sure body doesn't also scroll */
+  overflow-y: auto;
   overflow-x: hidden;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
   border: 1px solid rgba(255, 255, 255, 0.05);
+  /* Hide scrollbar */
+  scrollbar-width: none;
 }
-
-/* Optional: Hide scrollbar for a cleaner look */
 #root::-webkit-scrollbar { display: none; }
 
-/* Scrollbar */
 ::-webkit-scrollbar { width: 8px; }
 ::-webkit-scrollbar-track { background: var(--color-bg-primary); border-radius: 8px; }
 ::-webkit-scrollbar-thumb { background: #333; border-radius: 8px; }

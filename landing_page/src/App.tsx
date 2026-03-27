@@ -8,21 +8,23 @@ import Footer from './component/Footer';
 
 export default function App() {
   return (
-    <div className="w-full h-full flex flex-col relative">
-      {/* Nav floats on top of all layers */}
-      <div className="absolute top-0 w-full z-50">
+    // This div fills #root exactly
+    <div className="w-full min-h-full flex flex-col relative">
+
+      {/* Nav — fixed at top of the #root scroll container */}
+      <div className="sticky top-0 w-full z-50">
         <NavigationBar />
       </div>
 
-      <main className="flex flex-col flex-1 relative">
-        {/* STICKY LAYER: This stays fixed while you scroll */}
-        <div className="sticky top-0 h-full w-full z-0">
+      <main className="flex flex-col flex-1">
+        {/* Hero — sticky so it stays while the sliding layer scrolls over it */}
+        {/* sticky works here because #root is the scroll container */}
+        <div className="sticky top-[80px] z-0">
           <HeroSection />
         </div>
 
-        {/* SLIDING LAYER: This moves over the HeroSection */}
-        {/* Setting z-10 and a background color ensures the Hero is hidden as you scroll */}
-        <div className="relative z-10 bg-[#0a0a0a] shadow-[0_-20px_50px_rgba(0,0,0,0.8)] border-t border-white/5">
+        {/* Sliding layer — slides up over the hero as you scroll */}
+        <div className="relative z-10 bg-[#0a0a0a] shadow-[0_-30px_60px_rgba(0,0,0,0.9)] border-t border-white/5">
           <ProductDetailsSection />
           <SpecsSection />
           <ChampionSection />
@@ -30,6 +32,7 @@ export default function App() {
           <Footer />
         </div>
       </main>
+
     </div>
   );
 }
