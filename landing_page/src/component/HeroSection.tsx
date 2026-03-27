@@ -59,11 +59,9 @@ export default function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // Drag state passed into the 3D model
   const dragRef = useRef({ x: 0, y: 0, dragging: false });
   const [drag, setDrag] = useState({ x: 0, y: 0, dragging: false });
 
-  // ── Drag handlers ──────────────────────────────────────────────
   const onPointerDown = useCallback((e: React.PointerEvent) => {
     (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
     const next = { x: e.clientX, y: e.clientY, dragging: true };
@@ -84,7 +82,6 @@ export default function HeroSection() {
     setDrag(next);
   }, []);
 
-  // ── Entry animation ────────────────────────────────────────────
   useGSAP(() => {
     const tl = gsap.timeline();
 
@@ -113,7 +110,6 @@ export default function HeroSection() {
       "-=0.2"
     );
 
-    // Subtle float — only when not dragging
     gsap.to(canvasWrapRef.current, {
       y: "-=14",
       duration: 2.4,
@@ -125,7 +121,6 @@ export default function HeroSection() {
 
   const handleSelect = (index: number) => {
     if (index === activeIndex) return;
-
     gsap.fromTo(canvasWrapRef.current,
       { scale: 0.94 },
       { scale: 1, duration: 0.5, ease: "back.out(2)" }
@@ -138,7 +133,6 @@ export default function HeroSection() {
       { opacity: 0, y: 8 },
       { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }
     );
-
     setActiveIndex(index);
   };
 
@@ -146,110 +140,117 @@ export default function HeroSection() {
   const handleNext = () => handleSelect((activeIndex + 1) % products.length);
 
   return (
-    <section
-      ref={containerRef}
-      className="relative w-full min-h-screen overflow-hidden bg-[#0a0a0a]"
-    >
-      {/* ── Background name text — true viewport center ── */}
-      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
-        <h1
-          ref={bgTextRef}
-          className="font-heading text-[22vw] leading-none text-white select-none"
-          style={{ opacity: 0.09, letterSpacing: '-0.02em' }}
-        >
-          {activeProduct.name}
-        </h1>
-      </div>
+    // ── Outer: full viewport, centers the card ──
+    <section className="w-full min-h-screen bg-[#0a0a0a] flex items-center justify-center p-0 md:p-8">
 
-      {/* ── Radial glow — viewport center ── */}
+      {/* ── Inner card: landscape container ── */}
       <div
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+        ref={containerRef}
+        className="relative w-full h-full md:max-w-[1600px] md:max-h-[900px] bg-[#0a0a0a] md:rounded-[2.5rem] shadow-2xl flex flex-col border-0 md:border border-white/5 overflow-hidden"
+        style={{ minHeight: '100svh', }}
       >
-        <div
-          className="w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full transition-all duration-700"
-          style={{
-            background: `radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 68%)`,
-          }}
-        />
-      </div>
+        {/* On md+ override minHeight so the card is 900px max */}
+        <style>{`@media (min-width: 768px) { .hero-inner { min-height: unset !important; height: 900px; } }`}</style>
 
-      {/* ── 3D Ball — same center anchor as the text ── */}
-      <div className="absolute inset-0 flex items-center justify-center z-10">
-        <div
-          ref={canvasWrapRef}
-          className="w-[min(58vw,540px)] aspect-square"
-          style={{ cursor: drag.dragging ? 'grabbing' : 'grab' }}
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerLeave={onPointerUp}
-        >
-          <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }}>
-            <ambientLight intensity={0.45} />
-            <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={2.5} castShadow />
-            <spotLight
-              position={[-8, -5, -5]}
-              angle={0.3}
-              penumbra={1}
-              intensity={1.2}
-              color={activeProduct.themeColor}
-            />
-            <BasketballModel activeProduct={activeProduct} drag={drag} />
-            <Environment preset="city" />
-          </Canvas>
-        </div>
-      </div>
-
-      {/* ── Bottom bar ── */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-10 md:px-14 pb-10 md:pb-12">
-
-        {/* Price — bottom left */}
-        <div ref={priceRef} className="flex flex-col items-start">
-          <span
-            className="font-heading text-5xl md:text-6xl leading-none transition-colors duration-500"
-            style={{ color: activeProduct.themeColor }}
+        {/* Background name text */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <h1
+            ref={bgTextRef}
+            className="font-heading text-[22vw] md:text-[18vw] leading-none text-white select-none"
+            style={{ opacity: 0.09, letterSpacing: '-0.02em' }}
           >
-            {activeProduct.price}
-          </span>
-          <span className="font-heading text-[10px] text-[#444] uppercase tracking-widest mt-2">
-            Size 29.5" · Official
-          </span>
+            {activeProduct.name}
+          </h1>
         </div>
 
-        {/* CTA — bottom center */}
-        <button
-          ref={btnRef}
-          className="font-heading text-sm md:text-base uppercase px-12 py-4 tracking-widest transition-all duration-300 hover:scale-105"
-          style={{
-            backgroundColor: activeProduct.themeColor,
-            color: '#ffffff',
-            boxShadow: `0 8px 32px ${activeProduct.themeColor}55`,
-          }}
-        >
-          Add to Cart
-        </button>
+        {/* Radial glow */}
+        <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+          <div
+            className="w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full transition-all duration-700"
+            style={{
+              background: `radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 68%)`,
+            }}
+          />
+        </div>
 
-        {/* Arrows — bottom right */}
-        <div ref={arrowsRef} className="flex items-center gap-3">
+        {/* 3D Ball — centered */}
+        <div className="absolute inset-0 flex items-center justify-center z-10">
+          <div
+            ref={canvasWrapRef}
+            className="w-[min(58vw,520px)] aspect-square"
+            style={{ cursor: drag.dragging ? 'grabbing' : 'grab' }}
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerLeave={onPointerUp}
+          >
+            <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }}>
+              <ambientLight intensity={0.45} />
+              <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={2.5} castShadow />
+              <spotLight
+                position={[-8, -5, -5]}
+                angle={0.3}
+                penumbra={1}
+                intensity={1.2}
+                color={activeProduct.themeColor}
+              />
+              <BasketballModel activeProduct={activeProduct} drag={drag} />
+              <Environment preset="city" />
+            </Canvas>
+          </div>
+        </div>
+
+        {/* Bottom bar */}
+        <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-8 md:px-12 pb-8 md:pb-10">
+
+          {/* Price */}
+          <div ref={priceRef} className="flex flex-col items-start">
+            <span
+              className="font-heading text-5xl md:text-6xl leading-none transition-colors duration-500"
+              style={{ color: activeProduct.themeColor }}
+            >
+              {activeProduct.price}
+            </span>
+            <span className="font-heading text-[10px] text-[#444] uppercase tracking-widest mt-2">
+              Size 29.5" · Official
+            </span>
+          </div>
+
+          {/* CTA */}
           <button
-            onClick={handlePrev}
-            className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+            ref={btnRef}
+            className="font-heading text-sm md:text-base uppercase px-10 md:px-12 py-4 tracking-widest transition-all duration-300 hover:scale-105"
+            style={{
+              backgroundColor: activeProduct.themeColor,
+              color: '#ffffff',
+              boxShadow: `0 8px 32px ${activeProduct.themeColor}55`,
+            }}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
+            Add to Cart
           </button>
-          <button
-            onClick={handleNext}
-            className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
-            style={{ borderColor: activeProduct.themeColor }}
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-            </svg>
-          </button>
-        </div>
 
+          {/* Arrows */}
+          <div ref={arrowsRef} className="flex items-center gap-3">
+            <button
+              onClick={handlePrev}
+              className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+            <button
+              onClick={handleNext}
+              className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+              style={{ borderColor: activeProduct.themeColor }}
+            >
+              <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+                <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+              </svg>
+            </button>
+          </div>
+
+        </div>
       </div>
     </section>
   );
