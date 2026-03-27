@@ -70,7 +70,7 @@ export default function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative w-full overflow-hidden"
+      className="relative w-full h-full overflow-hidden"
       style={{ minHeight: 'calc(100vh - 48px - 80px)' }} /* full card height minus nav */
     >
       {/* Background name text */}
