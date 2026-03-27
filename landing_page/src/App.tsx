@@ -1,5 +1,3 @@
-
-
 import NavigationBar from './component/NavigationBar';
 import HeroSection from './component/HeroSection';
 import ProductDetailsSection from './component/ProductDetailSection';
@@ -10,9 +8,9 @@ import Footer from './component/Footer';
 
 export default function App() {
   return (
-    <div className="w-full h-full">
+    <div className="w-full h-full flex flex-col">
       <NavigationBar />
-      <main>
+      <main className="flex flex-col flex-1">
         <HeroSection />
         <ProductDetailsSection />
         <SpecsSection />

@@ -5,7 +5,7 @@
 @theme {
   --font-heading: "Anton", sans-serif;
   --font-body: "Inter", sans-serif;
-  --color-bg-primary: #111111;
+  --color-bg-primary: #0a0a0a;
   --color-accent: #FF3C00;
   --color-text-primary: #FFFFFF;
   --color-text-secondary: #B0B0B0;
@@ -13,7 +13,7 @@
 }
 
 body {
-  background-color: var(--color-accent);
+  background-color: #080808; /* dark surround — replaces the orange */
   padding: 24px;
   min-height: 100vh;
   margin: 0;
@@ -23,25 +23,16 @@ body {
 
 #root {
   background-color: var(--color-bg-primary);
-  border-radius: 32px;
+  border-radius: 2rem;
   min-height: calc(100vh - 48px);
   overflow-x: hidden;
   position: relative;
-  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.7);
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-/* Hide scrollbar for cleaner look */
-::-webkit-scrollbar {
-  width: 8px;
-}
-::-webkit-scrollbar-track {
-  background: var(--color-bg-primary);
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb {
-  background: #333;
-  border-radius: 8px;
-}
-::-webkit-scrollbar-thumb:hover {
-  background: var(--color-accent);
-}
+/* Scrollbar */
+::-webkit-scrollbar { width: 8px; }
+::-webkit-scrollbar-track { background: var(--color-bg-primary); border-radius: 8px; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 8px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }
