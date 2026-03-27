@@ -8,21 +8,23 @@ import Footer from './component/Footer';
 
 export default function App() {
   return (
-    <div className="w-full flex flex-col">
-
-      {/* Nav — sticky to the body scroll container */}
-      <div className="sticky top-0 z-50 rounded-t-[2rem]">
+    // Added h-full and relative to the main container
+    <div className="w-full h-full flex flex-col relative">
+      
+      {/* 1. Changed to absolute so it floats OVER the hero without pushing it down */}
+      <div className="absolute top-0 w-full z-50">
         <NavigationBar />
       </div>
 
-      <main className="flex flex-col">
-
-        {/* Hero — sticky, sits just below the nav */}
-        <div className="sticky z-0" style={{ top: '80px' }}>
+      <main className="flex flex-col relative h-full">
+        
+        {/* 2. Forced Hero wrapper to exactly match your root container's height. 
+               This guarantees the sliding layer is pushed completely out of view on load. */}
+        <div className="sticky top-0 h-[calc(100vh-48px)] w-full z-0 flex-shrink-0">
           <HeroSection />
         </div>
 
-        {/* Sliding layer — scrolls up over the sticky hero */}
+        {/* 3. Sliding layer naturally sits below the 100vh hero wrapper */}
         <div
           className="relative z-10 flex flex-col"
           style={{
@@ -37,7 +39,6 @@ export default function App() {
           <GravityPromoSection />
           <Footer />
         </div>
-
       </main>
     </div>
   );
