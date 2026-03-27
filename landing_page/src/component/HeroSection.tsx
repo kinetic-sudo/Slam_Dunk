@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
 import { Canvas } from '@react-three/fiber';
@@ -50,49 +50,73 @@ const products = [
 
 export default function HeroSection() {
   const containerRef = useRef<HTMLDivElement>(null);
-  const ballRef = useRef<HTMLDivElement>(null);
   const bgTextRef = useRef<HTMLHeadingElement>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
   const priceRef = useRef<HTMLDivElement>(null);
-  const selectorRef = useRef<HTMLDivElement>(null);
+  const arrowsRef = useRef<HTMLDivElement>(null);
+  const canvasWrapRef = useRef<HTMLDivElement>(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // Entry animation
+  // Drag state passed into the 3D model
+  const dragRef = useRef({ x: 0, y: 0, dragging: false });
+  const [drag, setDrag] = useState({ x: 0, y: 0, dragging: false });
+
+  // ── Drag handlers ──────────────────────────────────────────────
+  const onPointerDown = useCallback((e: React.PointerEvent) => {
+    (e.currentTarget as HTMLElement).setPointerCapture(e.pointerId);
+    const next = { x: e.clientX, y: e.clientY, dragging: true };
+    dragRef.current = next;
+    setDrag(next);
+  }, []);
+
+  const onPointerMove = useCallback((e: React.PointerEvent) => {
+    if (!dragRef.current.dragging) return;
+    const next = { x: e.clientX, y: e.clientY, dragging: true };
+    dragRef.current = next;
+    setDrag(next);
+  }, []);
+
+  const onPointerUp = useCallback(() => {
+    const next = { ...dragRef.current, dragging: false };
+    dragRef.current = next;
+    setDrag(next);
+  }, []);
+
+  // ── Entry animation ────────────────────────────────────────────
   useGSAP(() => {
     const tl = gsap.timeline();
 
     tl.fromTo(bgTextRef.current,
-      { opacity: 0, scale: 0.8, y: 30 },
-      { opacity: 0.07, scale: 1, y: 0, duration: 1, ease: "power3.out" }
+      { opacity: 0, scale: 0.92 },
+      { opacity: 0.09, scale: 1, duration: 1, ease: "power3.out" }
     )
-    .fromTo(ballRef.current,
-      { opacity: 0, scale: 0.5, y: 80 },
-      { opacity: 1, scale: 1, y: 0, duration: 1.2, ease: "back.out(1.5)" },
-      "-=0.6"
+    .fromTo(canvasWrapRef.current,
+      { opacity: 0, scale: 0.7 },
+      { opacity: 1, scale: 1, duration: 1.2, ease: "back.out(1.4)" },
+      "-=0.7"
     )
     .fromTo(priceRef.current,
-      { opacity: 0, x: -30 },
-      { opacity: 1, x: 0, duration: 0.6, ease: "power2.out" },
-      "-=0.5"
-    )
-    .fromTo(btnRef.current,
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
+      { opacity: 0, x: -20 },
+      { opacity: 1, x: 0, duration: 0.5, ease: "power2.out" },
       "-=0.4"
     )
-    .fromTo(
-      selectorRef.current?.children ? Array.from(selectorRef.current.children) : [],
-      { opacity: 0, y: 20 },
-      { opacity: 1, y: 0, duration: 0.4, stagger: 0.07, ease: "power2.out" },
+    .fromTo(btnRef.current,
+      { opacity: 0, y: 16 },
+      { opacity: 1, y: 0, duration: 0.5, ease: "power2.out" },
       "-=0.3"
+    )
+    .fromTo(arrowsRef.current,
+      { opacity: 0 },
+      { opacity: 1, duration: 0.4 },
+      "-=0.2"
     );
 
-    // Floating ball
-    gsap.to(ballRef.current, {
-      y: "-=18",
-      duration: 2.2,
+    // Subtle float — only when not dragging
+    gsap.to(canvasWrapRef.current, {
+      y: "-=14",
+      duration: 2.4,
       yoyo: true,
       repeat: -1,
       ease: "sine.inOut"
@@ -102,138 +126,130 @@ export default function HeroSection() {
   const handleSelect = (index: number) => {
     if (index === activeIndex) return;
 
-    // Flash/pulse the ball on switch
-    gsap.fromTo(ballRef.current,
-      { scale: 0.92 },
+    gsap.fromTo(canvasWrapRef.current,
+      { scale: 0.94 },
       { scale: 1, duration: 0.5, ease: "back.out(2)" }
     );
-
-    // Animate price out/in
-    gsap.fromTo(priceRef.current,
-      { opacity: 0, y: 10 },
-      { opacity: 1, y: 0, duration: 0.4, ease: "power2.out" }
-    );
-
-    // Flash bg text
     gsap.fromTo(bgTextRef.current,
-      { opacity: 0, scale: 0.95 },
-      { opacity: 0.07, scale: 1, duration: 0.5, ease: "power2.out" }
+      { opacity: 0, scale: 0.96 },
+      { opacity: 0.09, scale: 1, duration: 0.45, ease: "power2.out" }
+    );
+    gsap.fromTo(priceRef.current,
+      { opacity: 0, y: 8 },
+      { opacity: 1, y: 0, duration: 0.35, ease: "power2.out" }
     );
 
     setActiveIndex(index);
   };
 
+  const handlePrev = () => handleSelect((activeIndex - 1 + products.length) % products.length);
+  const handleNext = () => handleSelect((activeIndex + 1) % products.length);
+
   return (
     <section
       ref={containerRef}
-      className="relative w-full min-h-screen flex flex-col items-center justify-center pt-24 overflow-hidden bg-[#0a0a0a]"
+      className="relative w-full min-h-screen overflow-hidden bg-[#0a0a0a]"
     >
-      {/* Background name text */}
-      <h1
-        ref={bgTextRef}
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 font-heading text-[18vw] leading-none text-white opacity-[0.07] whitespace-nowrap blur-[3px] select-none pointer-events-none z-0 transition-none"
-        style={{ letterSpacing: '-0.02em' }}
-      >
-        {activeProduct.name}
-      </h1>
+      {/* ── Background name text — true viewport center ── */}
+      <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
+        <h1
+          ref={bgTextRef}
+          className="font-heading text-[22vw] leading-none text-white select-none"
+          style={{ opacity: 0.09, letterSpacing: '-0.02em' }}
+        >
+          {activeProduct.name}
+        </h1>
+      </div>
 
-      {/* Glow blob behind ball */}
+      {/* ── Radial glow — viewport center ── */}
       <div
-        className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full pointer-events-none z-0 transition-colors duration-700"
-        style={{
-          background: `radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 70%)`,
-        }}
-      />
-
-      {/* Main content */}
-      <div className="relative z-10 flex flex-col items-center w-full max-w-7xl mx-auto px-6">
-
-        {/* 3D Ball */}
+        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
+      >
         <div
-          ref={ballRef}
-          className="w-full max-w-[520px] aspect-square relative mb-6 pointer-events-none"
+          className="w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full transition-all duration-700"
+          style={{
+            background: `radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 68%)`,
+          }}
+        />
+      </div>
+
+      {/* ── 3D Ball — same center anchor as the text ── */}
+      <div className="absolute inset-0 flex items-center justify-center z-10">
+        <div
+          ref={canvasWrapRef}
+          className="w-[min(58vw,540px)] aspect-square"
+          style={{ cursor: drag.dragging ? 'grabbing' : 'grab' }}
+          onPointerDown={onPointerDown}
+          onPointerMove={onPointerMove}
+          onPointerUp={onPointerUp}
+          onPointerLeave={onPointerUp}
         >
           <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }}>
-            <ambientLight intensity={0.5} />
+            <ambientLight intensity={0.45} />
             <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={2.5} castShadow />
-            <spotLight position={[-8, -8, -5]} angle={0.3} penumbra={1} intensity={0.8} color={activeProduct.themeColor} />
-            <BasketballModel activeProduct={activeProduct} />
+            <spotLight
+              position={[-8, -5, -5]}
+              angle={0.3}
+              penumbra={1}
+              intensity={1.2}
+              color={activeProduct.themeColor}
+            />
+            <BasketballModel activeProduct={activeProduct} drag={drag} />
             <Environment preset="city" />
           </Canvas>
         </div>
+      </div>
 
-        {/* CTA Button */}
+      {/* ── Bottom bar ── */}
+      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-10 md:px-14 pb-10 md:pb-12">
+
+        {/* Price — bottom left */}
+        <div ref={priceRef} className="flex flex-col items-start">
+          <span
+            className="font-heading text-5xl md:text-6xl leading-none transition-colors duration-500"
+            style={{ color: activeProduct.themeColor }}
+          >
+            {activeProduct.price}
+          </span>
+          <span className="font-heading text-[10px] text-[#444] uppercase tracking-widest mt-2">
+            Size 29.5" · Official
+          </span>
+        </div>
+
+        {/* CTA — bottom center */}
         <button
           ref={btnRef}
-          className="font-heading text-xl uppercase px-14 py-4 rounded-sm tracking-widest transition-all duration-300 hover:scale-105 pointer-events-auto mb-14"
+          className="font-heading text-sm md:text-base uppercase px-12 py-4 tracking-widest transition-all duration-300 hover:scale-105"
           style={{
             backgroundColor: activeProduct.themeColor,
             color: '#ffffff',
-            boxShadow: `0 10px 40px ${activeProduct.themeColor}55`,
+            boxShadow: `0 8px 32px ${activeProduct.themeColor}55`,
           }}
         >
           Add to Cart
         </button>
 
-        {/* Product Selector */}
-        <div
-          ref={selectorRef}
-          className="flex items-center gap-6 md:gap-10"
-        >
-          {products.map((product, i) => {
-            const isActive = i === activeIndex;
-            return (
-              <button
-                key={product.id}
-                onClick={() => handleSelect(i)}
-                className="flex flex-col items-center gap-2 group transition-all duration-300 pointer-events-auto"
-              >
-                {/* Color dot */}
-                <div
-                  className="w-5 h-5 md:w-6 md:h-6 rounded-full transition-all duration-300"
-                  style={{
-                    backgroundColor: product.themeColor,
-                    boxShadow: isActive ? `0 0 14px 4px ${product.themeColor}88` : 'none',
-                    transform: isActive ? 'scale(1.3)' : 'scale(1)',
-                  }}
-                />
-                {/* Name */}
-                <span
-                  className="font-heading text-xs md:text-sm uppercase tracking-widest transition-all duration-300"
-                  style={{
-                    color: isActive ? product.themeColor : '#555',
-                  }}
-                >
-                  {product.name}
-                </span>
-                {/* Active underline */}
-                <div
-                  className="h-[2px] w-full rounded transition-all duration-300"
-                  style={{
-                    backgroundColor: isActive ? product.themeColor : 'transparent',
-                    opacity: isActive ? 1 : 0,
-                  }}
-                />
-              </button>
-            );
-          })}
+        {/* Arrows — bottom right */}
+        <div ref={arrowsRef} className="flex items-center gap-3">
+          <button
+            onClick={handlePrev}
+            className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
+          <button
+            onClick={handleNext}
+            className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+            style={{ borderColor: activeProduct.themeColor }}
+          >
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+          </button>
         </div>
-      </div>
 
-      {/* Price tag — bottom left */}
-      <div
-        ref={priceRef}
-        className="absolute bottom-10 left-10 md:bottom-16 md:left-14 flex flex-col items-start z-20"
-      >
-        <span
-          className="font-heading text-5xl md:text-6xl leading-none transition-colors duration-500"
-          style={{ color: activeProduct.themeColor }}
-        >
-          {activeProduct.price}
-        </span>
-        <span className="font-heading text-xs text-[#555] uppercase tracking-widest mt-2">
-          Size 29.5" · Official
-        </span>
       </div>
     </section>
   );
