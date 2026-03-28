@@ -24,7 +24,9 @@ export default function HeroSection() {
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
+  // Sync outer frame colour
   useEffect(() => {
+    document.getElementById('root')!.style.backgroundColor = activeProduct.themeColor;
     document.body.style.backgroundColor = activeProduct.themeColor;
   }, [activeProduct.themeColor]);
 
@@ -72,12 +74,12 @@ export default function HeroSection() {
       ref={containerRef}
       className="relative w-full bg-[#0a0a0a]"
       style={{
-        // Viewport height minus: 20px top body padding + 20px bottom + 80px nav
+        // .site-card is 100vh, minus 40px padding (20px each side), minus 80px nav
         height: 'calc(100vh - 40px - 80px)',
         overflow: 'hidden',
       }}
     >
-      {/* Background name text — dead center */}
+      {/* Background name text */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <h1
           ref={bgTextRef}
@@ -88,27 +90,24 @@ export default function HeroSection() {
         </h1>
       </div>
 
-      {/* Radial glow — dead center */}
+      {/* Radial glow */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <div
           className="rounded-full transition-all duration-700"
           style={{
-            width: '55vw',
-            height: '55vw',
-            maxWidth: '700px',
-            maxHeight: '700px',
+            width: '55vw', height: '55vw',
+            maxWidth: '700px', maxHeight: '700px',
             background: `radial-gradient(circle, ${activeProduct.themeColor}1e 0%, transparent 70%)`,
           }}
         />
       </div>
 
-      {/* 3D Ball — dead center, fills most of the viewport height */}
+      {/* 3D Ball */}
       <div className="absolute inset-0 flex items-center justify-center z-10">
         <div
           ref={canvasWrapRef}
           style={{
-            // Size ball relative to the shorter of width or height
-            width: 'min(52vw, calc(100vh - 40px - 80px - 160px))',
+            width: 'min(52vw, calc(100vh - 40px - 80px - 180px))',
             aspectRatio: '1 / 1',
             cursor: drag.dragging ? 'grabbing' : 'grab',
           }}
@@ -117,10 +116,7 @@ export default function HeroSection() {
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
         >
-          <Canvas
-            style={{ width: '100%', height: '100%' }}
-            camera={{ position: [0, 0, 6.5], fov: 45 }}
-          >
+          <Canvas style={{ width: '100%', height: '100%' }} camera={{ position: [0, 0, 6.5], fov: 45 }}>
             <ambientLight intensity={0.45} />
             <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={2.5} castShadow />
             <spotLight position={[-8, -5, -5]} angle={0.3} penumbra={1} intensity={1.2} color={activeProduct.themeColor} />
@@ -130,12 +126,11 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Bottom bar — always fully visible, 12px above edge */}
+      {/* Bottom bar */}
       <div
         className="absolute left-0 right-0 z-20 flex items-end justify-between"
         style={{ bottom: 0, padding: '0 56px 40px 56px' }}
       >
-        {/* Price */}
         <div ref={priceRef} className="flex flex-col items-start">
           <span
             className="font-heading leading-none transition-colors duration-500"
@@ -143,15 +138,11 @@ export default function HeroSection() {
           >
             {activeProduct.price}
           </span>
-          <span
-            className="font-heading uppercase tracking-widest mt-1"
-            style={{ fontSize: '10px', color: '#444' }}
-          >
+          <span className="font-heading uppercase tracking-widest mt-1" style={{ fontSize: '10px', color: '#444' }}>
             Size 29.5" · Official
           </span>
         </div>
 
-        {/* CTA */}
         <button
           ref={btnRef}
           className="font-heading uppercase tracking-widest transition-all duration-300 hover:scale-105"
@@ -167,7 +158,6 @@ export default function HeroSection() {
           Add to Cart
         </button>
 
-        {/* Arrows */}
         <div ref={arrowsRef} className="flex items-center gap-3">
           <button
             onClick={handlePrev}

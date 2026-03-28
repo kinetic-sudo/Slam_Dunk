@@ -13,36 +13,34 @@
 
 *, *::before, *::after { box-sizing: border-box; }
 
-html {
-  height: 100%;
-}
-
-body {
+html, body {
   margin: 0;
   padding: 0;
-  min-height: 100vh;
+  height: 100%;
+  overflow: hidden; /* body does NOT scroll — the inner wrapper does */
   font-family: var(--font-body);
   color: var(--color-text-primary);
   background-color: #FF3C00;
   transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
-  overflow-x: hidden;
-  /* Use padding so body background (the frame colour) shows around #root */
-  padding: 20px;
 }
 
 #root {
-  background-color: var(--color-bg-primary);
+  height: 100%;
+  padding: 20px;
+  background-color: #FF3C00;
+  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* The dark card — this is the scroll container */
+.site-card {
+  background-color: #0a0a0a;
   border-radius: 1.75rem;
-  /* Fill full height minus the 20px padding on each side */
-  min-height: calc(100vh - 40px);
+  height: 100%;
+  overflow-y: auto;      /* THIS scrolls */
+  overflow-x: hidden;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.05);
-  /* NO overflow hidden — kills sticky */
-  /* NO clip-path — clips at paint time */
+  scrollbar-width: none;
 }
-
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #333; border-radius: 6px; }
-::-webkit-scrollbar-thumb:hover { background: #555; }
+.site-card::-webkit-scrollbar { display: none; }
