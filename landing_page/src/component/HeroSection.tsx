@@ -133,26 +133,26 @@ export default function HeroSection() {
       >
         <div ref={priceRef} className="flex flex-col items-start">
           <span
-            className="font-heading leading-none transition-colors duration-500"
-            style={{ color: activeProduct.themeColor, fontSize: 'clamp(28px, 4vw, 64px)' }}
+            className="leading-none transition-colors duration-500"
+            style={{ color: activeProduct.themeColor, fontSize: 'clamp(18px, 4vw, 44px)' }}
           >
             {activeProduct.price}
           </span>
-          <span className="font-heading uppercase tracking-widest mt-1" style={{ fontSize: '10px', color: '#444' }}>
+          <span className=" uppercase tracking-widest mt-1" style={{ fontSize: '10px', color: '#444' }}>
             Size 29.5" · Official
           </span>
         </div>
 
         <button
           ref={btnRef}
-          className="font-heading uppercase tracking-widest transition-all duration-300 hover:scale-105"
+          className="interactive font-bold uppercase tracking-[0.2em] group relative w-full md:w-auto overflow-hidden rounded-sm px-14 py-5 shadow-glow transition-all duration-300 hover:shadow-lg hover:-translate-y-1"
           style={{
             backgroundColor: activeProduct.themeColor,
             color: '#fff',
             boxShadow: `0 8px 32px ${activeProduct.themeColor}55`,
             fontSize: 'clamp(11px, 0.9vw, 14px)',
-            padding: '14px clamp(24px, 3vw, 52px)',
-            letterSpacing: '0.12em',
+            padding: '24px clamp(24px, 3vw, 52px)',
+            letterSpacing: '0.15em',
           }}
         >
           Add to Cart
