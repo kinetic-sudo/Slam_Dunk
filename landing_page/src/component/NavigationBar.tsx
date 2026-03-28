@@ -17,9 +17,9 @@ export default function NavigationBar() {
 
       {/* Center Links */}
       <div className="hidden md:flex items-center gap-8">
-        <a href="#" className="font-heading text-lg uppercase tracking-wide relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#FF3C00] hover:text-[#FF3C00] transition-colors">Home</a>
-        <a href="#" className="font-heading text-lg uppercase tracking-wide text-[#B0B0B0] hover:text-white transition-colors">About us</a>
-        <a href="#" className="font-heading text-lg uppercase tracking-wide text-[#B0B0B0] hover:text-white transition-colors">Contact</a>
+        <a href="#" className="text-sm  tracking-wide relative after:content-[''] after:absolute after:-bottom-1 after:left-0 after:w-full after:h-[2px] after:bg-[#FF3C00] hover:text-[#FF3C00] transition-colors">Home</a>
+        <a href="#" className="text-sm  tracking-wide text-[#B0B0B0] hover:text-white transition-colors">About us</a>
+        <a href="#" className="text-sm  tracking-wide text-[#B0B0B0] hover:text-white transition-colors">Contact</a>
       </div>
 
       {/* Right Icons */}
