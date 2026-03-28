@@ -1,3 +1,7 @@
+import { useEffect } from 'react';
+import gsap from 'gsap';
+import { ScrollTrigger } from 'gsap/ScrollTrigger';
+
 import NavigationBar from './component/NavigationBar';
 import HeroSection from './component/HeroSection';
 import ProductDetailsSection from './component/ProductDetailSection';
@@ -6,35 +10,36 @@ import ChampionSection from './component/ChampionSection';
 import GravityPromoSection from './component/GravityPromoSection';
 import Footer from './component/Footer';
 
+gsap.registerPlugin(ScrollTrigger);
+
 export default function App() {
+  useEffect(() => {
+    const card = document.querySelector('.site-card') as HTMLElement;
+    if (!card) return;
+
+    // Tell ALL ScrollTriggers to use .site-card as the scroll container
+    ScrollTrigger.defaults({ scroller: card });
+
+    // Refresh after layout settles
+    const t = setTimeout(() => ScrollTrigger.refresh(), 300);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    /*
-      .site-card is the SCROLL CONTAINER (overflow-y: auto, fixed height).
-      sticky children work perfectly inside a defined scroll container.
-    */
     <div className="site-card">
       <div className="w-full flex flex-col">
 
-        {/* Nav — sticky to .site-card scroll container */}
+        {/* Nav */}
         <div className="sticky top-0 z-50">
           <NavigationBar />
         </div>
 
-        {/*
-          Hero — sticky just below nav inside .site-card.
-          Pins in place while .site-card scrolls.
-          z-0 so the content layer (z-10) slides over it.
-        */}
+        {/* Hero — sticky, pinned behind sliding content */}
         <div className="sticky z-0" style={{ top: '80px' }}>
           <HeroSection />
         </div>
 
-        {/*
-          Content layer.
-          margin-top = hero height so its top edge starts
-          at the bottom of .site-card viewport on load.
-          As user scrolls, this slides UP over the pinned hero.
-        */}
+        {/* Content — slides up over hero on scroll */}
         <div
           className="relative z-10 flex flex-col"
           style={{
