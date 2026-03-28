@@ -70,10 +70,14 @@ export default function HeroSection() {
   return (
     <section
       ref={containerRef}
-      className="relative w-full overflow-hidden bg-[#0a0a0a]"
-      style={{ height: 'calc(100svh - 48px - 80px)' }}
+      className="relative w-full bg-[#0a0a0a]"
+      style={{
+        // Viewport height minus: 20px top body padding + 20px bottom + 80px nav
+        height: 'calc(100vh - 40px - 80px)',
+        overflow: 'hidden',
+      }}
     >
-      {/* Background name text */}
+      {/* Background name text — dead center */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <h1
           ref={bgTextRef}
@@ -84,26 +88,39 @@ export default function HeroSection() {
         </h1>
       </div>
 
-      {/* Radial glow */}
+      {/* Radial glow — dead center */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <div
-          className="w-[55vw] h-[55vw] max-w-[700px] max-h-[700px] rounded-full transition-all duration-700"
-          style={{ background: `radial-gradient(circle, ${activeProduct.themeColor}1e 0%, transparent 70%)` }}
+          className="rounded-full transition-all duration-700"
+          style={{
+            width: '55vw',
+            height: '55vw',
+            maxWidth: '700px',
+            maxHeight: '700px',
+            background: `radial-gradient(circle, ${activeProduct.themeColor}1e 0%, transparent 70%)`,
+          }}
         />
       </div>
 
-      {/* 3D Ball */}
+      {/* 3D Ball — dead center, fills most of the viewport height */}
       <div className="absolute inset-0 flex items-center justify-center z-10">
         <div
           ref={canvasWrapRef}
-          className="w-[min(55vw,600px)] aspect-square"
-          style={{ cursor: drag.dragging ? 'grabbing' : 'grab' }}
+          style={{
+            // Size ball relative to the shorter of width or height
+            width: 'min(52vw, calc(100vh - 40px - 80px - 160px))',
+            aspectRatio: '1 / 1',
+            cursor: drag.dragging ? 'grabbing' : 'grab',
+          }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerLeave={onPointerUp}
         >
-          <Canvas camera={{ position: [0, 0, 6.5], fov: 45 }}>
+          <Canvas
+            style={{ width: '100%', height: '100%' }}
+            camera={{ position: [0, 0, 6.5], fov: 45 }}
+          >
             <ambientLight intensity={0.45} />
             <spotLight position={[10, 10, 10]} angle={0.2} penumbra={1} intensity={2.5} castShadow />
             <spotLight position={[-8, -5, -5]} angle={0.3} penumbra={1} intensity={1.2} color={activeProduct.themeColor} />
@@ -113,20 +130,28 @@ export default function HeroSection() {
         </div>
       </div>
 
-      {/* Bottom bar */}
-      <div className="absolute bottom-0 left-0 right-0 z-20 flex items-end justify-between px-8 md:px-14 pb-8 md:pb-12">
+      {/* Bottom bar — always fully visible, 12px above edge */}
+      <div
+        className="absolute left-0 right-0 z-20 flex items-end justify-between"
+        style={{ bottom: 0, padding: '0 56px 40px 56px' }}
+      >
+        {/* Price */}
         <div ref={priceRef} className="flex flex-col items-start">
           <span
             className="font-heading leading-none transition-colors duration-500"
-            style={{ color: activeProduct.themeColor, fontSize: 'clamp(32px, 5vw, 72px)' }}
+            style={{ color: activeProduct.themeColor, fontSize: 'clamp(28px, 4vw, 64px)' }}
           >
             {activeProduct.price}
           </span>
-          <span className="font-heading text-[10px] text-[#444] uppercase tracking-widest mt-1">
+          <span
+            className="font-heading uppercase tracking-widest mt-1"
+            style={{ fontSize: '10px', color: '#444' }}
+          >
             Size 29.5" · Official
           </span>
         </div>
 
+        {/* CTA */}
         <button
           ref={btnRef}
           className="font-heading uppercase tracking-widest transition-all duration-300 hover:scale-105"
@@ -134,17 +159,22 @@ export default function HeroSection() {
             backgroundColor: activeProduct.themeColor,
             color: '#fff',
             boxShadow: `0 8px 32px ${activeProduct.themeColor}55`,
-            fontSize: 'clamp(11px, 1vw, 15px)',
-            padding: 'clamp(12px, 1.2vh, 20px) clamp(28px, 3.5vw, 56px)',
+            fontSize: 'clamp(11px, 0.9vw, 14px)',
+            padding: '14px clamp(24px, 3vw, 52px)',
+            letterSpacing: '0.12em',
           }}
         >
           Add to Cart
         </button>
 
+        {/* Arrows */}
         <div ref={arrowsRef} className="flex items-center gap-3">
           <button
             onClick={handlePrev}
-            className="w-11 h-11 rounded-full border border-[#3a3a3a] flex items-center justify-center text-white hover:border-[#666] transition-colors duration-200"
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-colors duration-200"
+            style={{ border: '1px solid #3a3a3a' }}
+            onMouseEnter={e => (e.currentTarget.style.borderColor = '#666')}
+            onMouseLeave={e => (e.currentTarget.style.borderColor = '#3a3a3a')}
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -152,8 +182,8 @@ export default function HeroSection() {
           </button>
           <button
             onClick={handleNext}
-            className="w-11 h-11 rounded-full border flex items-center justify-center text-white transition-colors duration-200"
-            style={{ borderColor: activeProduct.themeColor }}
+            className="w-11 h-11 rounded-full flex items-center justify-center text-white transition-colors duration-200"
+            style={{ border: `1px solid ${activeProduct.themeColor}` }}
           >
             <svg width="13" height="13" viewBox="0 0 14 14" fill="none">
               <path d="M5 3L9 7L5 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
