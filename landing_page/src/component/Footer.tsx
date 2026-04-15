@@ -1,22 +1,59 @@
 export default function Footer() {
   return (
-    <footer className="w-full border-t border-[#333] py-8 mt-16">
-      <div className="max-w-7xl mx-auto px-6 grid grid-cols-1 md:grid-cols-3 gap-8 items-center text-center md:text-left">
-        
-        <div className="font-heading text-sm text-[#B0B0B0] uppercase tracking-wider">
-          © {new Date().getFullYear()} Slam Sore. All rights reserved.
+    <footer
+      className="w-full"
+      style={{
+        borderTop: '1px solid #1e1e1e',
+        paddingTop: '36px',
+        paddingBottom: '36px',
+        paddingLeft: '56px',
+        paddingRight: '56px',
+      }}
+    >
+      <div
+        className="w-full grid items-center"
+        style={{
+          gridTemplateColumns: '1fr auto 1fr',
+          gap: '24px',
+        }}
+      >
+        {/* Left — Copyright */}
+        <div>
+          <span
+            className="font-heading uppercase text-[#333] tracking-[0.18em]"
+            style={{ fontSize: '10px' }}
+          >
+            © {new Date().getFullYear()} Slam Sore. All rights reserved.
+          </span>
         </div>
 
-        <div className="flex justify-center gap-6 font-heading text-sm text-[#B0B0B0] uppercase tracking-wider">
-          <a href="#" className="hover:text-white transition-colors">Privacy Policy</a>
-          <a href="#" className="hover:text-white transition-colors">Terms of Service</a>
+        {/* Center — Legal links */}
+        <div className="flex items-center gap-8">
+          {['Privacy Policy', 'Terms of Service'].map(label => (
+            <a
+              key={label}
+              href="#"
+              className="font-heading uppercase text-[#333] tracking-[0.18em] transition-colors hover:text-[#666]"
+              style={{ fontSize: '10px' }}
+            >
+              {label}
+            </a>
+          ))}
         </div>
 
-        <div className="flex justify-center md:justify-end gap-6 font-heading text-sm text-[#B0B0B0] uppercase tracking-wider">
-          <a href="#" className="hover:text-white transition-colors">Support</a>
-          <a href="#" className="hover:text-white transition-colors">Contact Us</a>
+        {/* Right — Support links */}
+        <div className="flex items-center justify-end gap-8">
+          {['Support', 'Contact Us'].map(label => (
+            <a
+              key={label}
+              href="#"
+              className="font-heading uppercase text-[#333] tracking-[0.18em] transition-colors hover:text-[#666]"
+              style={{ fontSize: '10px' }}
+            >
+              {label}
+            </a>
+          ))}
         </div>
-
       </div>
     </footer>
   );
