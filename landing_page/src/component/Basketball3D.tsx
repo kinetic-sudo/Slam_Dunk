@@ -35,9 +35,19 @@ export default function BasketballModel({
   // Clone the scene once so mutations don't affect the GLTF cache
   const [clonedScene] = useState(() => {
     const clone = scene.clone(true);
-    // Deep-clone all materials so they're instance-independent
+    
+    // 1. CALCULATE ACTUAL CENTER
+    const box = new THREE.Box3().setFromObject(clone);
+    const center = new THREE.Vector3();
+    box.getCenter(center);
+    
+    // 2. OFFSET THE MESH so its center is 0,0,0
+    clone.position.sub(center); 
+  
     clone.traverse((child) => {
       if (child instanceof THREE.Mesh) {
+        child.castShadow = true;
+        child.receiveShadow = true;
         if (Array.isArray(child.material)) {
           child.material = child.material.map((m) => m.clone());
         } else {
@@ -100,7 +110,7 @@ export default function BasketballModel({
       <primitive
         object={clonedScene}
         // Scale up — the model is small by default
-        scale={2.6}
+        scale={2.4}
         position={[0, 0, 0]}
       />
     </group>
