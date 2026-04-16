@@ -123,7 +123,7 @@ export default function HeroSection() {
         <h1
           ref={bgTextRef}
           className="font-heading leading-none text-white select-none whitespace-nowrap"
-          style={{ opacity: 0.07, letterSpacing: '-0.02em', fontSize: 'clamp(64px, 18vw, 280px)' }}
+          style={{ opacity: 0.07, letterSpacing: '5.5rem', fontSize: 'clamp(64px, 18vw, 280px)' }}
         >
           {activeProduct.name}
         </h1>
