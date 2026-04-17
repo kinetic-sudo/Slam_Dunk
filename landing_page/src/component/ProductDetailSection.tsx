@@ -1,38 +1,3 @@
-/**
- * ARCHITECTURE OVERVIEW
- * ─────────────────────
- * The video shows ONE ball that persists across two "sections".
- * It does NOT jump between two Canvas elements.
- *
- * Layout:
- *   ┌─ .site-card (overflow-y: auto, scroll container) ──────────────┐
- *   │  ┌─ nav (sticky z-50) ──────────────────────────────────────┐  │
- *   │  └──────────────────────────────────────────────────────────┘  │
- *   │                                                                 │
- *   │  ┌─ #scroll-track (height: 300vh, position: relative) ──────┐  │
- *   │  │                                                           │  │
- *   │  │  ┌─ #ball-canvas (position: sticky, top: 80px) ────────┐ │  │
- *   │  │  │  Single <Canvas> — ball grows & moves right         │ │  │
- *   │  │  └────────────────────────────────────────────────────── ┘ │  │
- *   │  │                                                           │  │
- *   │  │  ┌─ #hero-content (position: absolute, inset-0) ───────┐ │  │
- *   │  │  │  SPAING text, price, CTA, arrows                    │ │  │
- *   │  │  └─────────────────────────────────────────────────────┘ │  │
- *   │  │                                                           │  │
- *   │  │  ┌─ #product-content (position: absolute, top: 100vh) ─┐ │  │
- *   │  │  │  ELITE CONTROL text, stats                          │ │  │
- *   │  │  └─────────────────────────────────────────────────────┘ │  │
- *   │  └───────────────────────────────────────────────────────────┘  │
- *   │                                                                 │
- *   │  ... rest of page (SpecsSection, etc.) ...                      │
- *   └─────────────────────────────────────────────────────────────────┘
- *
- * The scroll-track is 300vh tall so we have room to scrub:
- *   0–100vh  → hero phase  (ball centred, normal size)
- *   100–200vh→ transition  (ball grows, moves right, text swaps)
- *   200–300vh→ product phase (ball huge on right, ELITE CONTROL on left)
- */
-
 import { useRef, useState, useCallback, useEffect, Suspense } from 'react';
 import { useGSAP } from '@gsap/react';
 import gsap from 'gsap';
@@ -61,170 +26,177 @@ const products: ActiveProduct[] = [
 function Loader({ color }: { color: string }) {
   return (
     <div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none' }}>
-      <div style={{ width:36,height:36,borderRadius:'50%',border:`2px solid ${color}33`,borderTop:`2px solid ${color}`,animation:'spin 0.8s linear infinite' }}/>
+      <div style={{ width:32,height:32,borderRadius:'50%',border:`2px solid ${color}33`,borderTop:`2px solid ${color}`,animation:'spin 0.8s linear infinite' }}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
 
 export default function HeroProductSection() {
-  // ── Refs ────────────────────────────────────────────────────────────────
-  const trackRef      = useRef<HTMLDivElement>(null);   // 300vh scroll track
-  const ballCanvasRef = useRef<HTMLDivElement>(null);   // sticky canvas wrapper
-  const glowRef       = useRef<HTMLDivElement>(null);
+  const trackRef       = useRef<HTMLDivElement>(null);
+  const glowRef        = useRef<HTMLDivElement>(null);
+  const ballScrollRef  = useRef<HTMLDivElement>(null); // outer: scroll transforms
+  const ballFloatRef   = useRef<HTMLDivElement>(null); // inner: idle float only
 
-  // Hero content refs
-  const bgTextRef  = useRef<HTMLHeadingElement>(null);
-  const priceRef   = useRef<HTMLDivElement>(null);
-  const btnRef     = useRef<HTMLButtonElement>(null);
-  const arrowsRef  = useRef<HTMLDivElement>(null);
-  const dotsRef    = useRef<HTMLDivElement>(null);
-  const nameLabelRef = useRef<HTMLDivElement>(null);
+  const bgTextRef      = useRef<HTMLHeadingElement>(null);
+  const priceRef       = useRef<HTMLDivElement>(null);
+  const btnRef         = useRef<HTMLButtonElement>(null);
+  const arrowsRef      = useRef<HTMLDivElement>(null);
+  const dotsRef        = useRef<HTMLDivElement>(null);
+  const nameLabelRef   = useRef<HTMLDivElement>(null);
 
-  // Product content refs
   const productContentRef = useRef<HTMLDivElement>(null);
-  const eyebrowRef = useRef<HTMLSpanElement>(null);
-  const headingRef = useRef<HTMLDivElement>(null);
-  const taglineRef = useRef<HTMLParagraphElement>(null);
-  const statsRef   = useRef<HTMLDivElement>(null);
+  const eyebrowRef     = useRef<HTMLSpanElement>(null);
+  const headingRef     = useRef<HTMLDivElement>(null);
+  const taglineRef     = useRef<HTMLParagraphElement>(null);
+  const statsRef       = useRef<HTMLDivElement>(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // ── Sync frame colour ───────────────────────────────────────────────────
   useEffect(() => {
     const root = document.getElementById('root');
     if (root) root.style.backgroundColor = activeProduct.themeColor;
     document.body.style.backgroundColor = activeProduct.themeColor;
   }, [activeProduct.themeColor]);
 
-  // ── Product navigation ──────────────────────────────────────────────────
   const handleSelect = useCallback((index: number) => {
     if (index === activeIndex) return;
-    gsap.fromTo(ballCanvasRef.current, { opacity: 0.5 }, { opacity: 1, duration: 0.4, ease: 'power2.out' });
+    gsap.fromTo(ballScrollRef.current, { opacity: 0.5 }, { opacity: 1, duration: 0.4 });
     gsap.fromTo(bgTextRef.current, { opacity: 0 }, { opacity: 0.07, duration: 0.4 });
     gsap.fromTo(priceRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3 });
     setActiveIndex(index);
   }, [activeIndex]);
+
   const handlePrev = () => handleSelect((activeIndex - 1 + products.length) % products.length);
   const handleNext = () => handleSelect((activeIndex + 1) % products.length);
 
-  // ── GSAP scroll animation ───────────────────────────────────────────────
   useGSAP(() => {
     const scroller = SCROLLER();
 
-    // ── 1. Entry animation (on load, no scroll) ─────────────────────────
-    const loadTl = gsap.timeline();
-    loadTl
-      .fromTo(bgTextRef.current, { opacity:0, scale:0.92 }, { opacity:0.07, scale:1, duration:1, ease:'power3.out' })
-      .fromTo(ballCanvasRef.current, { opacity:0, scale:0.82 }, { opacity:1, scale:1, duration:1.2, ease:'back.out(1.4)' }, '-=0.7')
-      .fromTo(priceRef.current, { opacity:0, x:-20 }, { opacity:1, x:0, duration:0.5 }, '-=0.4')
-      .fromTo(btnRef.current, { opacity:0, y:16 }, { opacity:1, y:0, duration:0.5 }, '-=0.3')
-      .fromTo(arrowsRef.current, { opacity:0 }, { opacity:1, duration:0.4 }, '-=0.2')
-      .fromTo(dotsRef.current, { opacity:0 }, { opacity:1, duration:0.4 }, '-=0.3');
+    // ─── 1. Load entry (no scroll) ───────────────────────────────────────
+    gsap.timeline()
+      .fromTo(bgTextRef.current,
+        { opacity: 0, scale: 0.92 }, { opacity: 0.07, scale: 1, duration: 1, ease: 'power3.out' })
+      .fromTo(ballScrollRef.current,
+        { opacity: 0, scale: 0.82 }, { opacity: 1, scale: 1, duration: 1.2, ease: 'back.out(1.4)' }, '-=0.7')
+      .fromTo(priceRef.current,
+        { opacity: 0, x: -20 }, { opacity: 1, x: 0, duration: 0.5 }, '-=0.4')
+      .fromTo(btnRef.current,
+        { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.5 }, '-=0.3')
+      .fromTo(arrowsRef.current,
+        { opacity: 0 }, { opacity: 1, duration: 0.4 }, '-=0.2')
+      .fromTo(dotsRef.current,
+        { opacity: 0 }, { opacity: 1, duration: 0.4 }, '-=0.3');
 
-    // Idle float on ball
-    gsap.to(ballCanvasRef.current, {
+    // ─── 2. Idle float on inner wrapper only ─────────────────────────────
+    gsap.to(ballFloatRef.current, {
       y: '-=10', duration: 2.6, yoyo: true, repeat: -1, ease: 'sine.inOut',
     });
 
-    // ── 2. THE MAIN SCRUB TRANSITION ────────────────────────────────────
-    // This is the single timeline that drives everything from hero → product.
-    // It is scrubbed by scroll so the user controls speed.
-    //
-    // Scroll track: 300vh total
-    //   start: top of track hits top of viewport  (we're at scroll=0)
-    //   end:   bottom of track hits bottom of viewport (scroll = 200vh worth)
-    //
+    // ─── 3. Main scrubbed scroll transition ──────────────────────────────
+    /*
+     * REFERENCE VIDEO ANALYSIS (frame by frame):
+     *
+     * Phase A  (scroll 0%→40%):
+     *   - Hero UI (bg text, price, CTA, arrows) fades out quickly
+     *   - Ball stays centred but begins scaling up: 1× → ~1.6×
+     *   - NO rotation, NO lateral movement yet
+     *   - The "growing from centre" feel dominates
+     *
+     * Phase B  (scroll 40%→70%):
+     *   - Ball BOTH grows AND moves right simultaneously
+     *   - Scale goes 1.6× → 2.6×
+     *   - Ball translates from viewport centre to right edge (bleeds off)
+     *   - Ball stays vertically centred — NO yPercent movement
+     *
+     * Phase C  (scroll 60%→100%):
+     *   - Product text (ELITE CONTROL, stats) fades in from left
+     *   - Ball fully off-right, only ~40% visible
+     *
+     * KEY FIXES vs previous version:
+     *   1. NO rotate — reference shows zero CSS tilt
+     *   2. NO yPercent — ball stays vertically centred throughout
+     *   3. Scale must reach ~2.6× (not 2.0×) to bleed off right edge
+     *   4. x translation uses vw units (not xPercent which is self-relative)
+     *      Ball starts at viewport centre → needs to move ~35vw rightward
+     *   5. Hero UI fades out in phase A (0→0.35), not dragged into phase B
+     *   6. Two-phase ball motion: grow-in-place THEN grow+translate
+     */
     const mainTl = gsap.timeline({
       scrollTrigger: {
         trigger: trackRef.current,
         scroller,
-        start: 'top top',        // pin starts immediately
-        end:   '+=200%',         // 2× viewport of scroll travel
-        scrub: 1.2,
-        pin: true,               // PINS the entire track so sticky content works
+        start: 'top top',
+        end: '+=200%',
+        scrub: 1.0,         // tighter scrub = more responsive, less lag
+        pin: true,
         pinSpacing: true,
         anticipatePin: 1,
       },
     });
 
-    // ── Phase 1 (progress 0 → 0.35): hero UI fades out, ball grows ──────
+    // ── Phase A: Hero UI exits, ball grows in-place ──────────────────────
     mainTl
-      // Background text fades out
-      .to(bgTextRef.current, { opacity: 0, y: -40, ease: 'power2.in' }, 0)
+      .to(bgTextRef.current,  { opacity: 0, y: -30, duration: 0.3, ease: 'power2.in' }, 0)
+      .to(dotsRef.current,    { opacity: 0, y: -24, duration: 0.25, ease: 'power2.in' }, 0)
+      .to(nameLabelRef.current,{ opacity: 0, duration: 0.2, ease: 'power2.in' }, 0)
+      .to(glowRef.current,    { opacity: 0, duration: 0.3, ease: 'power2.in' }, 0)
+      // Price and CTA exit slightly later
+      .to(priceRef.current,   { opacity: 0, y: -50, duration: 0.28, ease: 'power2.in' }, 0.05)
+      .to(btnRef.current,     { opacity: 0, y: -50, duration: 0.28, ease: 'power2.in' }, 0.07)
+      .to(arrowsRef.current,  { opacity: 0, y: -50, duration: 0.28, ease: 'power2.in' }, 0.09)
 
-      // Hero UI elements scroll upward off screen
-      .to(priceRef.current,   { opacity: 0, y: -60, ease: 'power2.in' }, 0)
-      .to(btnRef.current,     { opacity: 0, y: -60, ease: 'power2.in' }, 0.02)
-      .to(arrowsRef.current,  { opacity: 0, y: -60, ease: 'power2.in' }, 0.04)
-      .to(dotsRef.current,    { opacity: 0, y: -40, ease: 'power2.in' }, 0)
-      .to(nameLabelRef.current,{ opacity: 0, y: -40, ease: 'power2.in' }, 0)
-      .to(glowRef.current,    { opacity: 0, ease: 'power2.in' }, 0)
-
-      // Ball: grow from ~35vw centred → giant on right, bleeding off edge
-      // Initial state: centred (translateX 0, translateY 0, scale 1 relative to its size)
-      // Final state: shifted right by ~30% of viewport, scaled 2.2×, translateY -5%
-      .to(ballCanvasRef.current, {
-        // Move ball to right side: x shift + scale up
-        xPercent: 28,          // shift right (% of its own width)
-        yPercent: -8,           // slight upward shift
-        scale: 2.0,             // grow large — fills right half of screen
-        ease: 'power2.inOut',
-        duration: 0.55,         // takes up 55% of total scroll distance
+      // Ball: pure scale-up from centre, no movement yet
+      // Progress 0 → 0.38: scale 1 → 1.7, position unchanged
+      .to(ballScrollRef.current, {
+        scale: 1.72,
+        // x/y stays at 0 — ball grows from the exact centre
+        duration: 0.38,
+        ease: 'power1.inOut',
       }, 0)
 
-    // ── Phase 2 (progress 0.35 → 1.0): product content fades in ─────────
-      // Make product content visible
-      .set(productContentRef.current, { visibility: 'visible' }, 0.35)
+    // ── Phase B: Ball grows + translates right ───────────────────────────
+    // Progress 0.38 → 0.78: scale 1.72 → 2.65, x 0 → ~34vw
+    // We use x in pixels derived from vw: window.innerWidth * 0.34
+    // But since GSAP processes this at animation time, use a function-based
+    // getter OR simply use a large enough xPercent.
+    // ballScrollRef width ≈ 44vw, so xPercent 80 = 0.8 × 44vw = 35.2vw ✓
+      .to(ballScrollRef.current, {
+        scale: 2.65,
+        xPercent: 78,       // 0.78 × 44vw ≈ 34vw shift right from centre
+        duration: 0.40,
+        ease: 'power2.inOut',
+      }, 0.38)
 
+    // ── Phase C: Product content fades in ────────────────────────────────
+      .set(productContentRef.current, { visibility: 'visible' }, 0.52)
       .fromTo(eyebrowRef.current,
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, ease: 'power3.out' },
-        0.38
-      )
+        { opacity: 0, y: 16 }, { opacity: 1, y: 0, duration: 0.18, ease: 'power2.out' }, 0.54)
       .fromTo(headingRef.current,
-        { opacity: 0, x: -50 },
-        { opacity: 1, x: 0, ease: 'power3.out' },
-        0.42
-      )
+        { opacity: 0, x: -44 }, { opacity: 1, x: 0, duration: 0.22, ease: 'power3.out' }, 0.58)
       .fromTo(taglineRef.current,
-        { opacity: 0, y: 16 },
-        { opacity: 1, y: 0, ease: 'power2.out' },
-        0.54
-      )
+        { opacity: 0, y: 14 }, { opacity: 1, y: 0, duration: 0.18, ease: 'power2.out' }, 0.68)
       .fromTo(
         statsRef.current?.children ? Array.from(statsRef.current.children) : [],
-        { opacity: 0, y: 20 },
-        { opacity: 1, y: 0, stagger: 0.04, ease: 'power2.out' },
-        0.62
+        { opacity: 0, y: 18 },
+        { opacity: 1, y: 0, stagger: 0.04, duration: 0.16, ease: 'power2.out' },
+        0.76
       );
 
   }, { scope: trackRef });
 
-  // ── Canvas sizing ───────────────────────────────────────────────────────
-  // Hero size: min(44vw, viewport_height - nav - bars)
-  const heroCanvasSize = 'min(44vw, calc(100vh - 40px - 80px - 160px))';
+  // Hero canvas size — sized to fill viewport nicely
+  const heroCanvasSize = 'min(46vw, calc(100vh - 40px - 80px - 120px))';
 
   return (
-    /**
-     * SCROLL TRACK — 300vh.
-     * ScrollTrigger will PIN this element for 200vh of scroll.
-     * Inside we have two layers of content:
-     *   1. The sticky ball canvas
-     *   2. Hero content (absolute, fades out)
-     *   3. Product content (absolute, fades in)
-     */
     <div
       ref={trackRef}
-      className="relative w-full"
+      className="relative w-full overflow-hidden"
       style={{ height: 'calc(100vh - 40px - 80px)' }}
     >
-      {/* ── BACKGROUND GLOW ─────────────────────────────────────────── */}
-      <div
-        ref={glowRef}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-      >
+      {/* ── GLOW ────────────────────────────────────────────────────── */}
+      <div ref={glowRef} className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <div
           className="rounded-full transition-colors duration-700"
           style={{
@@ -234,7 +206,7 @@ export default function HeroProductSection() {
         />
       </div>
 
-      {/* ── BACKGROUND TEXT ─────────────────────────────────────────── */}
+      {/* ── BG TEXT ─────────────────────────────────────────────────── */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
         <h1
           ref={bgTextRef}
@@ -245,41 +217,49 @@ export default function HeroProductSection() {
         </h1>
       </div>
 
-      {/* ── THE BALL — sticky, centred, this is the one that moves ──── */}
+      {/* ── BALL (outer = scroll transforms, inner = float) ──────────── */}
       {/*
-        Key: this sits at absolute inset-0 with flex centering.
-        GSAP will animate scale + xPercent + yPercent on this element.
-        Its initial centred position IS the hero ball position.
+        The outer div (ballScrollRef) is centred via absolute+flex.
+        GSAP animates: scale (grows), xPercent (moves right).
+        NO rotation, NO yPercent movement — matching the reference.
+        
+        The inner div (ballFloatRef) gets the repeating y float.
+        Separating these prevents the scrub from fighting the float tween.
       */}
       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
         <div
-          ref={ballCanvasRef}
-          className="relative pointer-events-auto"
-          style={{ width: heroCanvasSize, height: heroCanvasSize, flexShrink: 0 }}
+          ref={ballScrollRef}
+          style={{ width: heroCanvasSize, height: heroCanvasSize, flexShrink: 0, position: 'relative' }}
         >
-          <Loader color={activeProduct.themeColor} />
-          <Canvas
-            style={{ width: '100%', height: '100%', display: 'block' }}
-            camera={{ position: [0, 0, 5.2], fov: 42 }}
-            gl={{ antialias: true, alpha: true }}
-            onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
-          >
-            <ambientLight intensity={0.55} />
-            <directionalLight position={[6, 10, 6]}   intensity={1.6} />
-            <directionalLight position={[-6, -4, -6]} intensity={0.4} color="#ff4400" />
-            <spotLight position={[0, 8, 4]} angle={0.25} penumbra={1} intensity={2.2} castShadow />
-            <Environment preset="studio" />
-            <Suspense fallback={null}>
-              <BasketballModel activeProduct={activeProduct} />
-            </Suspense>
-          </Canvas>
+          <div ref={ballFloatRef} className="w-full h-full pointer-events-auto">
+            <Loader color={activeProduct.themeColor} />
+            <Canvas
+              style={{ width: '100%', height: '100%', display: 'block' }}
+              camera={{ position: [0, 0, 5.2], fov: 42 }}
+              gl={{ antialias: true, alpha: true }}
+              onCreated={({ gl }) => gl.setClearColor(0x000000, 0)}
+            >
+              <ambientLight intensity={0.55} />
+              <directionalLight position={[6, 10, 6]}   intensity={1.6} />
+              <directionalLight position={[-6, -4, -6]} intensity={0.4} color="#ff4400" />
+              <spotLight position={[0, 8, 4]} angle={0.25} penumbra={1} intensity={2.2} castShadow />
+              <Environment preset="studio" />
+              <Suspense fallback={null}>
+                <BasketballModel activeProduct={activeProduct} />
+              </Suspense>
+            </Canvas>
+          </div>
         </div>
       </div>
 
-      {/* ── HERO CONTENT — fades out on scroll ──────────────────────── */}
+      {/* ── HERO CONTENT (fades out) ─────────────────────────────────── */}
       <div className="absolute inset-0 z-20 pointer-events-none">
         {/* Dots */}
-        <div ref={dotsRef} className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-auto" style={{ top: '24px' }}>
+        <div
+          ref={dotsRef}
+          className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-auto"
+          style={{ top: '24px' }}
+        >
           {products.map((p, i) => (
             <button
               key={p.id}
@@ -287,7 +267,8 @@ export default function HeroProductSection() {
               aria-label={p.name}
               className="rounded-full transition-all duration-300"
               style={{
-                width: i === activeIndex ? '26px' : '8px', height: '8px',
+                width: i === activeIndex ? '26px' : '8px',
+                height: '8px',
                 backgroundColor: i === activeIndex ? p.themeColor : '#2a2a2a',
                 border: `1px solid ${i === activeIndex ? p.themeColor : '#444'}`,
               }}
@@ -300,7 +281,6 @@ export default function HeroProductSection() {
           className="absolute left-0 right-0 flex items-end justify-between pointer-events-auto"
           style={{ bottom: 0, padding: '0 56px 40px 56px' }}
         >
-          {/* Price */}
           <div ref={priceRef} className="flex flex-col gap-1">
             <span
               className="font-heading leading-none transition-colors duration-500"
@@ -313,7 +293,6 @@ export default function HeroProductSection() {
             </span>
           </div>
 
-          {/* CTA */}
           <button
             ref={btnRef}
             className="font-heading uppercase rounded-sm"
@@ -331,12 +310,13 @@ export default function HeroProductSection() {
             Add to Cart
           </button>
 
-          {/* Arrows */}
           <div ref={arrowsRef} className="flex items-center gap-3">
             <button
               onClick={handlePrev}
               className="w-11 h-11 rounded-full flex items-center justify-center text-white"
               style={{ border: '1px solid #333' }}
+              onMouseEnter={e => ((e.currentTarget as HTMLElement).style.borderColor = '#666')}
+              onMouseLeave={e => ((e.currentTarget as HTMLElement).style.borderColor = '#333')}
             >
               <svg width="12" height="12" viewBox="0 0 14 14" fill="none">
                 <path d="M9 11L5 7L9 3" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
@@ -365,16 +345,16 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* ── PRODUCT CONTENT — invisible until scroll triggers it ───── */}
+      {/* ── PRODUCT CONTENT (fades in) ───────────────────────────────── */}
+      {/*
+        Restricted to left 50% of viewport.
+        Ball is on the right 50%+ (xPercent:78 of 46vw ≈ 36vw rightward).
+        paddingRight: '52%' keeps text safely left of ball.
+      */}
       <div
         ref={productContentRef}
-        className="absolute inset-0 z-15 flex items-center pointer-events-none"
-        style={{
-          visibility: 'hidden',
-          // Left half only — ball is on right
-          paddingLeft: '56px',
-          paddingRight: '50%',
-        }}
+        className="absolute inset-0 z-20 flex items-center pointer-events-none"
+        style={{ visibility: 'hidden', paddingLeft: '56px', paddingRight: '52%' }}
       >
         <div className="flex flex-col w-full">
           <span
@@ -396,8 +376,8 @@ export default function HeroProductSection() {
 
           <p
             ref={taglineRef}
-            className="font-body text-[#777] mt-6 mb-12 leading-relaxed"
-            style={{ fontSize: '15px', maxWidth: '360px' }}
+            className="font-body text-[#777] mt-6 mb-10 leading-relaxed"
+            style={{ fontSize: '14px', maxWidth: '340px' }}
           >
             Engineered with microscopic composite channels for unparalleled grip.
             Texture optimised for precision handling.
@@ -406,26 +386,32 @@ export default function HeroProductSection() {
           <div
             ref={statsRef}
             className="grid grid-cols-3 border-t"
-            style={{ borderColor: '#1e1e1e', maxWidth: '480px' }}
+            style={{ borderColor: '#1e1e1e', maxWidth: '440px' }}
           >
             {[
-              { value: '100%',  label: 'Composite'    },
-              { value: '0.5mm', label: 'Pebble Depth'  },
-              { value: '1.2mm', label: 'Channels'      },
+              { value: '100%',  label: 'Composite'   },
+              { value: '0.5mm', label: 'Pebble Depth' },
+              { value: '1.2mm', label: 'Channels'     },
             ].map((s, i) => (
               <div
                 key={i}
                 className="flex flex-col pt-5"
                 style={{
-                  paddingLeft: i > 0 ? '16px' : 0,
+                  paddingLeft:  i > 0 ? '16px' : 0,
                   paddingRight: '16px',
-                  borderRight: i < 2 ? '1px solid #1a1a1a' : 'none',
+                  borderRight:  i < 2 ? '1px solid #1a1a1a' : 'none',
                 }}
               >
-                <span className="font-heading text-white" style={{ fontSize: 'clamp(24px, 2.2vw, 36px)', letterSpacing: '-0.02em' }}>
+                <span
+                  className="font-heading text-white"
+                  style={{ fontSize: 'clamp(22px, 2vw, 34px)', letterSpacing: '-0.02em' }}
+                >
                   {s.value}
                 </span>
-                <span className="font-heading uppercase mt-2" style={{ fontSize: '9px', color: '#555', letterSpacing: '0.22em' }}>
+                <span
+                  className="font-heading uppercase mt-2"
+                  style={{ fontSize: '9px', color: '#555', letterSpacing: '0.22em' }}
+                >
                   {s.label}
                 </span>
               </div>
