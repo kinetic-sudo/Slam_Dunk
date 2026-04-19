@@ -26,32 +26,30 @@ const products: ActiveProduct[] = [
 function Loader({ color }: { color: string }) {
   return (
     <div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none' }}>
-      <div style={{ width:32,height:32,borderRadius:'50%',border:`2px solid ${color}33`,borderTop:`2px solid ${color}`,animation:'spin 0.8s linear infinite' }}/>
+      <div style={{ width:28,height:28,borderRadius:'50%',border:`2px solid ${color}33`,borderTop:`2px solid ${color}`,animation:'spin 0.8s linear infinite' }}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
 }
 
 export default function HeroProductSection() {
-  const trackRef      = useRef<HTMLDivElement>(null);
-  const glowRef       = useRef<HTMLDivElement>(null);
-  // Single wrapper for the ball — GSAP will animate this
-  const ballRef       = useRef<HTMLDivElement>(null);
-  // Inner wrapper for idle float ONLY (separate to avoid transform conflict)
-  const ballFloatRef  = useRef<HTMLDivElement>(null);
+  const trackRef     = useRef<HTMLDivElement>(null);
+  const glowRef      = useRef<HTMLDivElement>(null);
+  const ballRef      = useRef<HTMLDivElement>(null);      // GSAP scroll transforms
+  const ballFloatRef = useRef<HTMLDivElement>(null);      // idle float only
 
-  const bgTextRef     = useRef<HTMLHeadingElement>(null);
-  const priceRef      = useRef<HTMLDivElement>(null);
-  const btnRef        = useRef<HTMLButtonElement>(null);
-  const arrowsRef     = useRef<HTMLDivElement>(null);
-  const dotsRef       = useRef<HTMLDivElement>(null);
-  const nameLabelRef  = useRef<HTMLDivElement>(null);
+  const bgTextRef    = useRef<HTMLHeadingElement>(null);
+  const priceRef     = useRef<HTMLDivElement>(null);
+  const btnRef       = useRef<HTMLButtonElement>(null);
+  const arrowsRef    = useRef<HTMLDivElement>(null);
+  const dotsRef      = useRef<HTMLDivElement>(null);
+  const nameLabelRef = useRef<HTMLDivElement>(null);
 
   const productContentRef = useRef<HTMLDivElement>(null);
-  const eyebrowRef    = useRef<HTMLSpanElement>(null);
-  const headingRef    = useRef<HTMLDivElement>(null);
-  const taglineRef    = useRef<HTMLParagraphElement>(null);
-  const statsRef      = useRef<HTMLDivElement>(null);
+  const eyebrowRef   = useRef<HTMLSpanElement>(null);
+  const headingRef   = useRef<HTMLDivElement>(null);
+  const taglineRef   = useRef<HTMLParagraphElement>(null);
+  const statsRef     = useRef<HTMLDivElement>(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
@@ -64,9 +62,9 @@ export default function HeroProductSection() {
 
   const handleSelect = useCallback((index: number) => {
     if (index === activeIndex) return;
-    gsap.fromTo(ballRef.current, { opacity: 0.5 }, { opacity: 1, duration: 0.4 });
-    gsap.fromTo(bgTextRef.current, { opacity: 0 }, { opacity: 0.07, duration: 0.4 });
-    gsap.fromTo(priceRef.current, { opacity: 0, y: 8 }, { opacity: 1, y: 0, duration: 0.3 });
+    gsap.fromTo(ballRef.current,   { opacity:0.5 }, { opacity:1, duration:0.4 });
+    gsap.fromTo(bgTextRef.current, { opacity:0 },   { opacity:0.07, duration:0.4 });
+    gsap.fromTo(priceRef.current,  { opacity:0, y:8 }, { opacity:1, y:0, duration:0.3 });
     setActiveIndex(index);
   }, [activeIndex]);
 
@@ -91,154 +89,127 @@ export default function HeroProductSection() {
       .fromTo(dotsRef.current,
         { opacity:0 }, { opacity:1, duration:0.4 }, '-=0.3');
 
-    // ── 2. Idle float on INNER wrapper only ───────────────────────────────
-    // Animates `y` on ballFloatRef so it never conflicts with ballRef transforms
+    // ── 2. Idle float on inner wrapper only ───────────────────────────────
     gsap.to(ballFloatRef.current, {
-      y: '-=10', duration:2.6, yoyo:true, repeat:-1, ease:'sine.inOut',
+      y:'-=10', duration:2.6, yoyo:true, repeat:-1, ease:'sine.inOut',
     });
 
     // ── 3. Scroll scrub ───────────────────────────────────────────────────
     /*
-     * TARGET STATE (matching reference video):
+     * MEASUREMENTS from reference video:
      *
-     * Hero (scroll 0):
-     *   ball  — centred, ~44vw wide (scale 1)
-     *   x     — 0 (flex-centred)
+     * Hero ball: ~30% of viewport height tall  →  base size = 30vh = ~28vw on 16:9
+     * Final ball: fills right ~45% of screen, top+bottom both clipped equally
+     *   → scale ≈ 1.85  (28vw × 1.85 = 52vw, fits right half with bleed)
      *
-     * Product state (scroll 100%):
-     *   ball  — scale 1.55 → ball rendered width ≈ 68vw
-     *   x     — shifted right so ball CENTRE is at ~75% of viewport
-     *           from flex centre (50vw) → need +25vw shift
-     *           ballRef width = 44vw, so xPercent 57 = 0.57×44vw = 25vw ✓
+     * Ball final X position:
+     *   Base width = 28vw. Ball centre needs to land at ~78vw from left.
+     *   Current centre = 50vw. Need to move +28vw rightward.
+     *   xPercent = 28vw / 28vw × 100 = 100%   → xPercent: 100
      *
-     * What the video shows (WRONG in last version):
-     *   - scale 2.65 made ball fill the entire screen (way too much)
-     *   - two sequential .to() on ballRef caused GSAP scrub to interpolate
-     *     the wrong keyframes — ball went UP not RIGHT
+     * SCROLL DISTANCE:
+     *   Reference completes full transition in ONE wheel scroll (~100vh).
+     *   end: '+=100%'  (not 200%)
      *
-     * FIX: ONE single fromTo per property on ballRef.
-     *      scale: 1 → 1.55  (ball fills right half, not whole screen)
-     *      xPercent: 0 → 57  (shifts centre from 50vw to ~75vw)
-     *      No yPercent. No rotate.
-     *
-     * The scrub timeline must have NO duplicate property tweens.
+     * SCRUB:
+     *   scrub:0.6 — tight/responsive. Reference feels very direct, not laggy.
      */
-    const ctx = gsap.context(() => {
-      const tl = gsap.timeline({
-        scrollTrigger: {
-          trigger: trackRef.current,
-          scroller,
-          start: 'top top',
-          end: '+=200%',
-          scrub: 1.5,       // 1.5s lag gives buttery feel
-          pin: true,
-          pinSpacing: true,
-          anticipatePin: 1,
-          // onUpdate fires every frame during scrub for debugging:
-          // onUpdate: (self) => console.log(self.progress.toFixed(2)),
-        },
-      });
 
-      // ── Hero UI exits (progress 0 → 0.4) ────────────────────────────
-      tl
-        .to(bgTextRef.current,   { opacity:0, y:-30, ease:'power2.in', duration:0.4 }, 0)
-        .to(dotsRef.current,     { opacity:0, y:-20, ease:'power2.in', duration:0.3 }, 0)
-        .to(nameLabelRef.current,{ opacity:0,        ease:'power2.in', duration:0.25 }, 0)
-        .to(glowRef.current,     { opacity:0,        ease:'power2.in', duration:0.35 }, 0)
-        .to(priceRef.current,    { opacity:0, y:-48, ease:'power2.in', duration:0.3  }, 0.06)
-        .to(btnRef.current,      { opacity:0, y:-48, ease:'power2.in', duration:0.3  }, 0.08)
-        .to(arrowsRef.current,   { opacity:0, y:-48, ease:'power2.in', duration:0.3  }, 0.10)
-
-        // ── Ball: SINGLE tween — scale + shift right (progress 0 → 0.65) ──
-        // One fromTo per property = no scrub keyframe conflicts
-        .fromTo(ballRef.current,
-          {
-            scale:    1,
-            xPercent: 0,
-          },
-          {
-            scale:    1.55,   // fills right half nicely, doesn't overflow whole screen
-            xPercent: 57,     // 57% of 44vw = 25vw rightward → ball centre at 75vw
-            ease:     'power2.inOut',
-            duration: 0.65,   // occupies first 65% of the total scrub travel
-          },
-          0                   // starts at progress 0, runs in parallel with UI exit
-        )
-
-        // ── Product content enters (progress 0.55 → 1.0) ─────────────────
-        .set(productContentRef.current, { visibility:'visible' }, 0.55)
-        .fromTo(eyebrowRef.current,
-          { opacity:0, y:14 }, { opacity:1, y:0, ease:'power2.out', duration:0.2 }, 0.57)
-        .fromTo(headingRef.current,
-          { opacity:0, x:-40 }, { opacity:1, x:0, ease:'power3.out', duration:0.24 }, 0.61)
-        .fromTo(taglineRef.current,
-          { opacity:0, y:12 }, { opacity:1, y:0, ease:'power2.out', duration:0.2 }, 0.72)
-        .fromTo(
-          statsRef.current?.children ? Array.from(statsRef.current.children) : [],
-          { opacity:0, y:16 },
-          { opacity:1, y:0, stagger:0.04, ease:'power2.out', duration:0.18 },
-          0.80
-        );
+    const tl = gsap.timeline({
+      scrollTrigger: {
+        trigger: trackRef.current,
+        scroller,
+        start: 'top top',
+        end: '+=100%',       // ONE viewport of scroll — completes in one scroll gesture
+        scrub: 0.6,          // tight scrub — direct, responsive feel
+        pin: true,
+        pinSpacing: true,
+        anticipatePin: 1,
+      },
     });
 
-    return () => ctx.revert();
+    // Phase 1 (0 → 0.45): Hero UI exits fast
+    tl
+      .to(bgTextRef.current,    { opacity:0, y:-24, ease:'power2.in', duration:0.4 }, 0)
+      .to(dotsRef.current,      { opacity:0, y:-16, ease:'power2.in', duration:0.3 }, 0)
+      .to(nameLabelRef.current, { opacity:0,        ease:'power2.in', duration:0.25 }, 0)
+      .to(glowRef.current,      { opacity:0,        ease:'power2.in', duration:0.35 }, 0)
+      .to(priceRef.current,     { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.04)
+      .to(btnRef.current,       { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.06)
+      .to(arrowsRef.current,    { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.08)
+
+      // ── Ball: single fromTo, scale + translate right ─────────────────
+      // Base size: 28vw.
+      // scale:1.85 → rendered width 52vw → fills right half + slight bleed
+      // xPercent:100 → shifts 28vw right → ball centre at 50+28 = 78vw ✓
+      .fromTo(ballRef.current,
+        { scale:1,    xPercent:0   },
+        { scale:1.85, xPercent:100, ease:'power2.inOut', duration:0.65 },
+        0
+      )
+
+    // Phase 2 (0.52 → 1.0): Product content enters
+      .set(productContentRef.current, { visibility:'visible' }, 0.52)
+      .fromTo(eyebrowRef.current,
+        { opacity:0, y:12 }, { opacity:1, y:0, ease:'power2.out', duration:0.18 }, 0.54)
+      .fromTo(headingRef.current,
+        { opacity:0, x:-36 }, { opacity:1, x:0, ease:'power3.out', duration:0.22 }, 0.58)
+      .fromTo(taglineRef.current,
+        { opacity:0, y:10 }, { opacity:1, y:0, ease:'power2.out', duration:0.18 }, 0.70)
+      .fromTo(
+        statsRef.current?.children ? Array.from(statsRef.current.children) : [],
+        { opacity:0, y:14 },
+        { opacity:1, y:0, stagger:0.035, ease:'power2.out', duration:0.16 },
+        0.78
+      );
 
   }, { scope: trackRef });
 
   return (
-    /*
-     * trackRef: the pinned container.
-     * CRITICAL: overflow must be 'clip' not 'hidden'.
-     * 'overflow:hidden' on a ScrollTrigger-pinned element breaks pin
-     * calculations in some browsers and clips the ball before it exits right.
-     * 'overflow:clip' clips visually without creating a scroll context.
-     */
     <div
       ref={trackRef}
       className="relative w-full"
       style={{ height:'calc(100vh - 40px - 80px)', overflow:'clip' }}
     >
 
-      {/* ── GLOW ──────────────────────────────────────────────────────── */}
-      <div
-        ref={glowRef}
-        className="absolute inset-0 flex items-center justify-center pointer-events-none z-0"
-      >
+      {/* GLOW */}
+      <div ref={glowRef} className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
         <div
           className="rounded-full transition-colors duration-700"
           style={{
-            width:'65vw', height:'65vw', maxWidth:'800px', maxHeight:'800px',
-            background:`radial-gradient(circle, ${activeProduct.themeColor}28 0%, transparent 68%)`,
+            width:'60vw', height:'60vw', maxWidth:'720px', maxHeight:'720px',
+            background:`radial-gradient(circle, ${activeProduct.themeColor}25 0%, transparent 68%)`,
           }}
         />
       </div>
 
-      {/* ── BG TEXT ───────────────────────────────────────────────────── */}
+      {/* BG TEXT */}
       <div className="absolute inset-0 flex items-center justify-center pointer-events-none z-0 overflow-hidden">
         <h1
           ref={bgTextRef}
           className="font-heading leading-none text-white select-none whitespace-nowrap"
-          style={{ opacity:0.07, letterSpacing:'-0.02em', fontSize:'clamp(64px, 18vw, 280px)' }}
+          style={{ opacity:0.07, letterSpacing:'-0.02em', fontSize:'clamp(60px, 17vw, 260px)' }}
         >
           {activeProduct.name}
         </h1>
       </div>
 
-      {/* ── BALL ──────────────────────────────────────────────────────── */}
-      {/*
-        Outer div (ballRef): centred via flex, GSAP animates scale + xPercent
-        Inner div (ballFloatRef): idle y-float only, never touched by scroll tween
-        
-        heroCanvasSize sets the base size. At scale:1.55 this becomes ~68vw.
-        With xPercent:57 (25vw right) the ball centre sits at ~75vw.
-        The right quarter of the ball bleeds off-screen — matching the reference.
+      {/* ── BALL ─────────────────────────────────────────────────────────
+        Base size: 28vw (≈ 30% of viewport height on 16:9).
+        This matches the reference where the ball is clearly smaller than
+        the viewport — not dominating it.
+
+        At scale:1.85 → 52vw rendered width.
+        At xPercent:100 → centre moves to 50 + 28 = 78vw.
+        Ball left edge = 78 - 26 = 52vw → left half is clear for text.
+        Ball right edge = 78 + 26 = 104vw → bleeds 4vw off screen. ✓
       */}
       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
         <div
           ref={ballRef}
           style={{
-            width:  'min(44vw, calc(100vh - 40px - 80px - 120px))',
-            height: 'min(44vw, calc(100vh - 40px - 80px - 120px))',
+            width:  '28vw',
+            height: '28vw',
             flexShrink: 0,
             position: 'relative',
           }}
@@ -264,7 +235,7 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* ── HERO CONTENT (fades out) ───────────────────────────────────── */}
+      {/* HERO CONTENT — fades out */}
       <div className="absolute inset-0 z-20 pointer-events-none">
 
         {/* Dots */}
@@ -294,7 +265,6 @@ export default function HeroProductSection() {
           className="absolute left-0 right-0 flex items-end justify-between pointer-events-auto"
           style={{ bottom:0, padding:'0 56px 40px 56px' }}
         >
-          {/* Price */}
           <div ref={priceRef} className="flex flex-col gap-1">
             <span
               className="font-heading leading-none transition-colors duration-500"
@@ -307,7 +277,6 @@ export default function HeroProductSection() {
             </span>
           </div>
 
-          {/* CTA */}
           <button
             ref={btnRef}
             className="font-heading uppercase rounded-sm"
@@ -325,7 +294,6 @@ export default function HeroProductSection() {
             Add to Cart
           </button>
 
-          {/* Arrows */}
           <div ref={arrowsRef} className="flex items-center gap-3">
             <button
               onClick={handlePrev}
@@ -353,7 +321,6 @@ export default function HeroProductSection() {
           </div>
         </div>
 
-        {/* Name label */}
         <div ref={nameLabelRef} className="absolute left-1/2 -translate-x-1/2 bottom-28 pointer-events-none">
           <span className="font-heading uppercase text-[#3a3a3a] tracking-[0.28em]" style={{ fontSize:'10px' }}>
             {activeProduct.name}
@@ -361,21 +328,19 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* ── PRODUCT CONTENT (fades in) ─────────────────────────────────── */}
-      {/*
-        Constrained to left 48% of viewport.
-        Ball at xPercent:57 is centred at ~75vw, so its left edge ≈ 53vw.
-        paddingRight:'52%' keeps text clear of the ball.
+      {/* PRODUCT CONTENT — fades in
+        paddingRight:'50%' keeps text left of ball.
+        Ball centre at 78vw, left edge at 52vw → 50% padding gives 4vw clearance.
       */}
       <div
         ref={productContentRef}
         className="absolute inset-0 z-20 flex items-center pointer-events-none"
-        style={{ visibility:'hidden', paddingLeft:'56px', paddingRight:'52%' }}
+        style={{ visibility:'hidden', paddingLeft:'56px', paddingRight:'50%' }}
       >
         <div className="flex flex-col w-full">
           <span
             ref={eyebrowRef}
-            className="font-heading uppercase mb-4"
+            className="font-heading uppercase mb-3"
             style={{ color:'#FF3C00', fontSize:'11px', letterSpacing:'0.35em' }}
           >
             Performance Series
@@ -384,7 +349,7 @@ export default function HeroProductSection() {
           <div ref={headingRef}>
             <h2
               className="font-heading text-white uppercase"
-              style={{ fontSize:'clamp(52px, 7vw, 108px)', letterSpacing:'-0.025em', lineHeight:'0.88' }}
+              style={{ fontSize:'clamp(48px, 6.5vw, 104px)', letterSpacing:'-0.025em', lineHeight:'0.88' }}
             >
               ELITE<br/>CONTROL
             </h2>
@@ -392,8 +357,8 @@ export default function HeroProductSection() {
 
           <p
             ref={taglineRef}
-            className="font-body text-[#777] mt-6 mb-10 leading-relaxed"
-            style={{ fontSize:'14px', maxWidth:'340px' }}
+            className="font-body text-[#666] mt-5 mb-8 leading-relaxed"
+            style={{ fontSize:'13px', maxWidth:'320px' }}
           >
             Engineered with microscopic composite channels for unparalleled grip.
             Texture optimised for precision handling.
@@ -402,7 +367,7 @@ export default function HeroProductSection() {
           <div
             ref={statsRef}
             className="grid grid-cols-3 border-t"
-            style={{ borderColor:'#1e1e1e', maxWidth:'440px' }}
+            style={{ borderColor:'#1e1e1e', maxWidth:'420px' }}
           >
             {[
               { value:'100%',  label:'Composite'    },
@@ -411,17 +376,17 @@ export default function HeroProductSection() {
             ].map((s,i) => (
               <div
                 key={i}
-                className="flex flex-col pt-5"
+                className="flex flex-col pt-4"
                 style={{
-                  paddingLeft:  i > 0 ? '16px' : 0,
-                  paddingRight: '16px',
+                  paddingLeft:  i > 0 ? '14px' : 0,
+                  paddingRight: '14px',
                   borderRight:  i < 2 ? '1px solid #1a1a1a' : 'none',
                 }}
               >
-                <span className="font-heading text-white" style={{ fontSize:'clamp(22px, 2vw, 34px)', letterSpacing:'-0.02em' }}>
+                <span className="font-heading text-white" style={{ fontSize:'clamp(20px, 1.8vw, 32px)', letterSpacing:'-0.02em' }}>
                   {s.value}
                 </span>
-                <span className="font-heading uppercase mt-2" style={{ fontSize:'9px', color:'#555', letterSpacing:'0.22em' }}>
+                <span className="font-heading uppercase mt-1" style={{ fontSize:'9px', color:'#555', letterSpacing:'0.2em' }}>
                   {s.label}
                 </span>
               </div>
