@@ -17,18 +17,25 @@ html, body {
   margin: 0;
   padding: 0;
   height: 100%;
-  overflow: hidden; /* body does NOT scroll — the inner wrapper does */
+  overflow: hidden;
   font-family: var(--font-body);
   color: var(--color-text-primary);
   background-color: #FF3C00;
-  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /*
+   * REMOVED: transition: background-color 0.6s ...
+   * This transition forced a full compositor repaint on EVERY frame during
+   * the scroll animation (scroll → GSAP transform → bg-color transition fires
+   * → repaint → repeat). Three simultaneous paint operations per frame.
+   * Background colour transitions are now controlled entirely by JS in
+   * HeroProductSection, which enables the transition only when NOT scrolling.
+   */
 }
 
 #root {
   height: 100%;
   padding: 20px;
   background-color: #FF3C00;
-  transition: background-color 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+  /* NO transition here — managed by JS */
 }
 
 /* The dark card — this is the scroll container */
@@ -36,11 +43,15 @@ html, body {
   background-color: #0a0a0a;
   border-radius: 1.75rem;
   height: 100%;
-  overflow-y: auto;      /* THIS scrolls */
+  overflow-y: auto;
   overflow-x: hidden;
   position: relative;
   box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8);
   border: 1px solid rgba(255, 255, 255, 0.05);
   scrollbar-width: none;
+  /*
+   * scroll-behavior: auto (default) is intentional.
+   * smooth scrolling conflicts with GSAP ScrollTrigger scrub.
+   */
 }
 .site-card::-webkit-scrollbar { display: none; }

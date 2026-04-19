@@ -4,12 +4,8 @@ import { useGLTF } from '@react-three/drei';
 import * as THREE from 'three';
 
 export type ActiveProduct = {
-  id: string;
-  name: string;
-  price: string;
-  themeColor: string;
-  ballColor: string;
-  seamColor: string;
+  id: string; name: string; price: string;
+  themeColor: string; ballColor: string; seamColor: string;
 };
 
 type Props = {
@@ -17,105 +13,111 @@ type Props = {
   modelUrl?: string;
 };
 
-const MODEL_URL =
-'/models/basketball.glb'
-export default function BasketballModel({
-  activeProduct,
-  modelUrl = MODEL_URL,
-}: Props) {
+const MODEL_URL = '/models/basketball.glb';
+
+// Lerp speed — how fast color transitions happen
+const COLOR_LERP = 0.06;
+// Stop lerping when this close to target (avoids infinite micro-updates)
+const COLOR_EPSILON = 0.002;
+
+export default function BasketballModel({ activeProduct, modelUrl = MODEL_URL }: Props) {
   const groupRef = useRef<THREE.Group>(null);
   const { scene } = useGLTF(modelUrl);
 
-  // Track whether we've cloned materials yet
-  const clonedRef = useRef(false);
+  const targetBall = useRef(new THREE.Color(activeProduct.ballColor));
+  const targetSeam = useRef(new THREE.Color(activeProduct.seamColor));
+  // Track whether colors are still transitioning
+  const colorsDirty = useRef(false);
 
-  const targetBallColor = useRef(new THREE.Color(activeProduct.ballColor));
-  const targetSeamColor = useRef(new THREE.Color(activeProduct.seamColor));
+  // ── Pre-build material lists once (not every frame) ──────────────────
+  // meshData: array of { mat, isSeam } built at clone time.
+  // useFrame reads this directly — zero traverse, zero allocations per frame.
+  type MeshData = { mat: THREE.MeshStandardMaterial; isSeam: boolean };
+  const meshDataRef = useRef<MeshData[]>([]);
 
-  // Clone the scene once so mutations don't affect the GLTF cache
   const [clonedScene] = useState(() => {
     const clone = scene.clone(true);
-    
-    // 1. CALCULATE ACTUAL CENTER
+
+    // Centre the model
     const box = new THREE.Box3().setFromObject(clone);
-    const center = new THREE.Vector3();
-    box.getCenter(center);
-    
-    // 2. OFFSET THE MESH so its center is 0,0,0
-    clone.position.sub(center); 
-  
+    const centre = new THREE.Vector3();
+    box.getCenter(centre);
+    clone.position.sub(centre);
+
+    const list: MeshData[] = [];
+
     clone.traverse((child) => {
-      if (child instanceof THREE.Mesh) {
-        child.castShadow = true;
-        child.receiveShadow = true;
-        if (Array.isArray(child.material)) {
-          child.material = child.material.map((m) => m.clone());
-        } else {
-          child.material = child.material.clone();
+      if (!(child instanceof THREE.Mesh)) return;
+      child.castShadow = true;
+      child.receiveShadow = true;
+
+      // Clone materials so we don't mutate the cached GLTF
+      const mats = Array.isArray(child.material) ? child.material : [child.material];
+      const cloned = mats.map((m: THREE.Material) => m.clone());
+      child.material = cloned.length === 1 ? cloned[0] : cloned;
+
+      const isSeam =
+        child.name.toLowerCase().includes('seam') ||
+        child.name.toLowerCase().includes('line');
+
+      cloned.forEach((m) => {
+        if (m instanceof THREE.MeshStandardMaterial) {
+          list.push({ mat: m, isSeam });
         }
-      }
+      });
     });
+
+    meshDataRef.current = list;
     return clone;
   });
 
+  // When product changes: mark dirty, update targets
   useEffect(() => {
-    targetBallColor.current = new THREE.Color(activeProduct.ballColor);
-    targetSeamColor.current = new THREE.Color(activeProduct.seamColor);
-  }, [activeProduct]);
+    targetBall.current.set(activeProduct.ballColor);
+    targetSeam.current.set(activeProduct.seamColor);
+    colorsDirty.current = true;
+  }, [activeProduct.ballColor, activeProduct.seamColor]);
 
   useFrame(() => {
-    if (!clonedScene) return;
-
-    // Slow auto-rotate
+    // ── Rotate ────────────────────────────────────────────────────────
     if (groupRef.current) {
       groupRef.current.rotation.y += 0.004;
     }
 
-    clonedScene.traverse((child) => {
-      if (!(child instanceof THREE.Mesh)) return;
+    // ── Color lerp — only runs when dirty ─────────────────────────────
+    // This is the key perf fix: skip the entire loop when colors have settled.
+    if (!colorsDirty.current) return;
 
-      const mats = Array.isArray(child.material)
-        ? child.material
-        : [child.material];
+    let stillMoving = false;
+    const list = meshDataRef.current;
 
-      mats.forEach((mat) => {
-        if (!(mat instanceof THREE.MeshStandardMaterial)) return;
+    for (let i = 0; i < list.length; i++) {
+      const { mat, isSeam } = list[i];
+      const target = isSeam ? targetSeam.current : targetBall.current;
 
-        const isSeam =
-          child.name.toLowerCase().includes('seam') ||
-          mat.name.toLowerCase().includes('seam') ||
-          child.name.toLowerCase().includes('line') ||
-          mat.name.toLowerCase().includes('line');
+      mat.color.lerp(target, COLOR_LERP);
 
-        if (isSeam) {
-          mat.color.lerp(targetSeamColor.current, 0.06);
-          mat.roughness = 0.85;
-          mat.metalness = 0.0;
-        } else {
-          mat.color.lerp(targetBallColor.current, 0.06);
-          // Keep the model's built-in PBR roughness/metalness intact
-          // so the photorealistic leather texture is preserved.
-          // Only nudge if materials seem flat:
-          if (mat.roughness > 0.95) mat.roughness = 0.72;
-          if (mat.metalness < 0.05) mat.metalness = 0.08;
-        }
+      // Check if we've reached the target
+      if (
+        Math.abs(mat.color.r - target.r) > COLOR_EPSILON ||
+        Math.abs(mat.color.g - target.g) > COLOR_EPSILON ||
+        Math.abs(mat.color.b - target.b) > COLOR_EPSILON
+      ) {
+        stillMoving = true;
+      }
+    }
 
-        mat.needsUpdate = false; // color.lerp doesn't need needsUpdate
-      });
-    });
+    // Once all colors have settled, stop running the loop
+    if (!stillMoving) {
+      colorsDirty.current = false;
+    }
   });
 
   return (
     <group ref={groupRef} dispose={null}>
-      <primitive
-        object={clonedScene}
-        // Scale up — the model is small by default
-        scale={2.4}
-        position={[0, 0, 0]}
-      />
+      <primitive object={clonedScene} scale={2.4} position={[0, 0, 0]} />
     </group>
   );
 }
 
-// Kick off the network request immediately
 useGLTF.preload(MODEL_URL);
