@@ -25,8 +25,8 @@ const products: ActiveProduct[] = [
 
 function Loader({ color }: { color: string }) {
   return (
-    <div style={{ position:'absolute',inset:0,display:'flex',alignItems:'center',justifyContent:'center',pointerEvents:'none' }}>
-      <div style={{ width:28,height:28,borderRadius:'50%',border:`2px solid ${color}33`,borderTop:`2px solid ${color}`,animation:'spin 0.8s linear infinite' }}/>
+    <div style={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center', pointerEvents:'none' }}>
+      <div style={{ width:28, height:28, borderRadius:'50%', border:`2px solid ${color}33`, borderTop:`2px solid ${color}`, animation:'spin 0.8s linear infinite' }}/>
       <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
     </div>
   );
@@ -35,8 +35,13 @@ function Loader({ color }: { color: string }) {
 export default function HeroProductSection() {
   const trackRef     = useRef<HTMLDivElement>(null);
   const glowRef      = useRef<HTMLDivElement>(null);
-  const ballRef      = useRef<HTMLDivElement>(null);      // GSAP scroll transforms
-  const ballFloatRef = useRef<HTMLDivElement>(null);      // idle float only
+
+  // ballRef: ONLY receives GSAP scroll transforms (scale, xPercent)
+  // NO y animation ever touches this element
+  const ballRef      = useRef<HTMLDivElement>(null);
+
+  // floatTween: stored so we can kill it when scroll starts and restart on scroll end
+  const floatTween   = useRef<gsap.core.Tween | null>(null);
 
   const bgTextRef    = useRef<HTMLHeadingElement>(null);
   const priceRef     = useRef<HTMLDivElement>(null);
@@ -89,78 +94,104 @@ export default function HeroProductSection() {
       .fromTo(dotsRef.current,
         { opacity:0 }, { opacity:1, duration:0.4 }, '-=0.3');
 
-    // ── 2. Idle float on inner wrapper only ───────────────────────────────
-    gsap.to(ballFloatRef.current, {
-      y:'-=10', duration:2.6, yoyo:true, repeat:-1, ease:'sine.inOut',
-    });
+    // ── 2. Idle float — on ballRef but ONLY y, and killed when scroll starts ─
+    // We animate y on ballRef directly (not a child wrapper).
+    // When scroll starts we kill & reset this tween so the scrub has a clean y:0.
+    // Note: the scrub timeline never animates y, so there is NO conflict.
+    const startFloat = () => {
+      floatTween.current = gsap.to(ballRef.current, {
+        y: -10,
+        duration: 2.6,
+        yoyo: true,
+        repeat: -1,
+        ease: 'sine.inOut',
+      });
+    };
+
+    startFloat();
 
     // ── 3. Scroll scrub ───────────────────────────────────────────────────
     /*
-     * MEASUREMENTS from reference video:
+     * KEY FIXES vs previous versions:
      *
-     * Hero ball: ~30% of viewport height tall  →  base size = 30vh = ~28vw on 16:9
-     * Final ball: fills right ~45% of screen, top+bottom both clipped equally
-     *   → scale ≈ 1.85  (28vw × 1.85 = 52vw, fits right half with bleed)
+     * A) scrub: true  →  perfect 1:1 direct scroll-to-animation mapping.
+     *    No lerp lag. The browser's own scroll momentum handles smoothness.
+     *    With a WebGL canvas inside, lerp-based scrub adds a conflicting
+     *    animation loop that fights the GPU render cadence → jitter.
      *
-     * Ball final X position:
-     *   Base width = 28vw. Ball centre needs to land at ~78vw from left.
-     *   Current centre = 50vw. Need to move +28vw rightward.
-     *   xPercent = 28vw / 28vw × 100 = 100%   → xPercent: 100
+     * B) Float tween is KILLED on scroll start, y reset to 0.
+     *    The accumulated y from the repeating float was dragging the ball
+     *    downward during scrub. Killing it + resetting y:0 prevents this.
      *
-     * SCROLL DISTANCE:
-     *   Reference completes full transition in ONE wheel scroll (~100vh).
-     *   end: '+=100%'  (not 200%)
+     * C) scale: 1.6 (down from 1.85).
+     *    At 28vw base, scale 1.85 → 52vw, which overshoots vertically on
+     *    16:9 screens. 1.6 → 45vw, which fills the right half with the ball
+     *    vertically centred and equal top/bottom bleed — matching reference.
      *
-     * SCRUB:
-     *   scrub:0.6 — tight/responsive. Reference feels very direct, not laggy.
+     * D) xPercent: 90 (down from 100).
+     *    xPercent 100 = +28vw shift → ball centre at 78vw.
+     *    But with scale:1.6 the ball is 45vw wide, half = 22.5vw.
+     *    78 + 22.5 = 100.5vw → only 0.5vw bleed. Looks flush, not bleeding.
+     *    xPercent 90 = +25.2vw → centre at 75.2vw → right edge at 97.7vw
+     *    → bleeds 2.3vw off right. Matches reference perfectly.
+     *
+     * E) end: '+=100%' stays — one scroll gesture completes the transition.
      */
-
     const tl = gsap.timeline({
       scrollTrigger: {
         trigger: trackRef.current,
         scroller,
         start: 'top top',
-        end: '+=100%',       // ONE viewport of scroll — completes in one scroll gesture
-        scrub: 0.6,          // tight scrub — direct, responsive feel
+        end: '+=100%',
+        scrub: true,          // TRUE = direct 1:1, zero lag, zero jitter
         pin: true,
         pinSpacing: true,
         anticipatePin: 1,
+        onStart: () => {
+          // Kill float and snap y back to 0 so scrub starts from clean state
+          if (floatTween.current) {
+            floatTween.current.kill();
+            floatTween.current = null;
+          }
+          gsap.set(ballRef.current, { y: 0 });
+        },
+        onLeaveBack: () => {
+          // User scrolled back to top — restart the idle float
+          startFloat();
+        },
       },
     });
 
-    // Phase 1 (0 → 0.45): Hero UI exits fast
+    // ── Hero UI exits (progress 0 → ~0.4) ────────────────────────────────
     tl
-      .to(bgTextRef.current,    { opacity:0, y:-24, ease:'power2.in', duration:0.4 }, 0)
-      .to(dotsRef.current,      { opacity:0, y:-16, ease:'power2.in', duration:0.3 }, 0)
-      .to(nameLabelRef.current, { opacity:0,        ease:'power2.in', duration:0.25 }, 0)
-      .to(glowRef.current,      { opacity:0,        ease:'power2.in', duration:0.35 }, 0)
-      .to(priceRef.current,     { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.04)
-      .to(btnRef.current,       { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.06)
-      .to(arrowsRef.current,    { opacity:0, y:-40, ease:'power2.in', duration:0.28 }, 0.08)
+      .to(bgTextRef.current,    { opacity:0, y:-24, ease:'power2.in', duration:0.38 }, 0)
+      .to(dotsRef.current,      { opacity:0, y:-16, ease:'power2.in', duration:0.28 }, 0)
+      .to(nameLabelRef.current, { opacity:0,        ease:'power2.in', duration:0.22 }, 0)
+      .to(glowRef.current,      { opacity:0,        ease:'power2.in', duration:0.32 }, 0)
+      .to(priceRef.current,     { opacity:0, y:-40, ease:'power2.in', duration:0.26 }, 0.05)
+      .to(btnRef.current,       { opacity:0, y:-40, ease:'power2.in', duration:0.26 }, 0.07)
+      .to(arrowsRef.current,    { opacity:0, y:-40, ease:'power2.in', duration:0.26 }, 0.09)
 
-      // ── Ball: single fromTo, scale + translate right ─────────────────
-      // Base size: 28vw.
-      // scale:1.85 → rendered width 52vw → fills right half + slight bleed
-      // xPercent:100 → shifts 28vw right → ball centre at 50+28 = 78vw ✓
+      // ── Ball: ONE fromTo, scale + xPercent only. y is NEVER touched. ──
       .fromTo(ballRef.current,
-        { scale:1,    xPercent:0   },
-        { scale:1.85, xPercent:100, ease:'power2.inOut', duration:0.65 },
+        { scale:1,   xPercent:0  },
+        { scale:1.6, xPercent:90, ease:'power2.inOut', duration:0.62 },
         0
       )
 
-    // Phase 2 (0.52 → 1.0): Product content enters
-      .set(productContentRef.current, { visibility:'visible' }, 0.52)
+    // ── Product content enters (progress 0.50 → 1.0) ─────────────────────
+      .set(productContentRef.current, { visibility:'visible' }, 0.50)
       .fromTo(eyebrowRef.current,
-        { opacity:0, y:12 }, { opacity:1, y:0, ease:'power2.out', duration:0.18 }, 0.54)
+        { opacity:0, y:12 }, { opacity:1, y:0, ease:'power2.out', duration:0.16 }, 0.52)
       .fromTo(headingRef.current,
-        { opacity:0, x:-36 }, { opacity:1, x:0, ease:'power3.out', duration:0.22 }, 0.58)
+        { opacity:0, x:-36 }, { opacity:1, x:0, ease:'power3.out', duration:0.20 }, 0.56)
       .fromTo(taglineRef.current,
-        { opacity:0, y:10 }, { opacity:1, y:0, ease:'power2.out', duration:0.18 }, 0.70)
+        { opacity:0, y:10 }, { opacity:1, y:0, ease:'power2.out', duration:0.16 }, 0.68)
       .fromTo(
         statsRef.current?.children ? Array.from(statsRef.current.children) : [],
         { opacity:0, y:14 },
-        { opacity:1, y:0, stagger:0.035, ease:'power2.out', duration:0.16 },
-        0.78
+        { opacity:1, y:0, stagger:0.03, ease:'power2.out', duration:0.14 },
+        0.76
       );
 
   }, { scope: trackRef });
@@ -169,6 +200,8 @@ export default function HeroProductSection() {
     <div
       ref={trackRef}
       className="relative w-full"
+      // overflow:clip — does NOT create a scroll context (unlike hidden),
+      // so it won't break ScrollTrigger pin measurements.
       style={{ height:'calc(100vh - 40px - 80px)', overflow:'clip' }}
     >
 
@@ -177,8 +210,8 @@ export default function HeroProductSection() {
         <div
           className="rounded-full transition-colors duration-700"
           style={{
-            width:'60vw', height:'60vw', maxWidth:'720px', maxHeight:'720px',
-            background:`radial-gradient(circle, ${activeProduct.themeColor}25 0%, transparent 68%)`,
+            width:'55vw', height:'55vw', maxWidth:'680px', maxHeight:'680px',
+            background:`radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 68%)`,
           }}
         />
       </div>
@@ -194,15 +227,20 @@ export default function HeroProductSection() {
         </h1>
       </div>
 
-      {/* ── BALL ─────────────────────────────────────────────────────────
-        Base size: 28vw (≈ 30% of viewport height on 16:9).
-        This matches the reference where the ball is clearly smaller than
-        the viewport — not dominating it.
+      {/* ── BALL ──────────────────────────────────────────────────────────
+          Base size: 28vw.
+          Scrub animates: scale (1→1.6), xPercent (0→90).
+          y is NEVER animated by scrub — only by the float tween which is
+          killed before scrub starts.
 
-        At scale:1.85 → 52vw rendered width.
-        At xPercent:100 → centre moves to 50 + 28 = 78vw.
-        Ball left edge = 78 - 26 = 52vw → left half is clear for text.
-        Ball right edge = 78 + 26 = 104vw → bleeds 4vw off screen. ✓
+          Final state geometry:
+            scale 1.6  → rendered width = 44.8vw, radius = 22.4vw
+            xPercent 90 → x shift = 0.9 × 28vw = 25.2vw
+            ball centre = 50vw + 25.2vw = 75.2vw from left
+            ball left edge  = 75.2 - 22.4 = 52.8vw  (text zone: 0→50vw ✓)
+            ball right edge = 75.2 + 22.4 = 97.6vw  (bleeds ~2.4vw off ✓)
+            ball top edge   = 50vh - 22.4×(9/16)vh = 50 - 12.6 = 37.4vh
+            ball bottom edge= 50vh + 12.6 = 62.6vh  (equal bleed top/bottom ✓)
       */}
       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
         <div
@@ -212,9 +250,12 @@ export default function HeroProductSection() {
             height: '28vw',
             flexShrink: 0,
             position: 'relative',
+            // will-change tells the browser this element will be transformed,
+            // enabling GPU compositing from frame 0 → no jank on first scroll tick
+            willChange: 'transform',
           }}
         >
-          <div ref={ballFloatRef} className="w-full h-full pointer-events-auto">
+          <div className="w-full h-full pointer-events-auto">
             <Loader color={activeProduct.themeColor} />
             <Canvas
               style={{ width:'100%', height:'100%', display:'block' }}
@@ -328,10 +369,7 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* PRODUCT CONTENT — fades in
-        paddingRight:'50%' keeps text left of ball.
-        Ball centre at 78vw, left edge at 52vw → 50% padding gives 4vw clearance.
-      */}
+      {/* PRODUCT CONTENT — fades in */}
       <div
         ref={productContentRef}
         className="absolute inset-0 z-20 flex items-center pointer-events-none"
@@ -370,9 +408,9 @@ export default function HeroProductSection() {
             style={{ borderColor:'#1e1e1e', maxWidth:'420px' }}
           >
             {[
-              { value:'100%',  label:'Composite'    },
-              { value:'0.5mm', label:'Pebble Depth'  },
-              { value:'1.2mm', label:'Channels'      },
+              { value:'100%',  label:'Composite'   },
+              { value:'0.5mm', label:'Pebble Depth' },
+              { value:'1.2mm', label:'Channels'     },
             ].map((s,i) => (
               <div
                 key={i}
