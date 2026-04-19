@@ -32,6 +32,22 @@ function Loader({ color }: { color: string }) {
   );
 }
 
+// Stats data for the product section
+const STATS = [
+  {
+    value: '100%',
+    unit: '',
+    label: 'Microfiber Composite',
+    desc: 'Exclusive coating material providing superior grip management in all weather conditions.',
+  },
+  {
+    value: '0.5',
+    unit: 'mm',
+    label: 'Pebble Depth',
+    desc: 'Optimized surface texture for precision handling and rotational feedback.',
+  },
+];
+
 export default function HeroProductSection() {
   const trackRef     = useRef<HTMLDivElement>(null);
   const glowRef      = useRef<HTMLDivElement>(null);
@@ -47,27 +63,19 @@ export default function HeroProductSection() {
   const nameLabelRef = useRef<HTMLDivElement>(null);
 
   const productContentRef = useRef<HTMLDivElement>(null);
-  const eyebrowRef   = useRef<HTMLSpanElement>(null);
+  const eyebrowRef   = useRef<HTMLDivElement>(null);
   const headingRef   = useRef<HTMLDivElement>(null);
-  const taglineRef   = useRef<HTMLParagraphElement>(null);
-  const statsRef     = useRef<HTMLDivElement>(null);
+  const statsListRef = useRef<HTMLDivElement>(null);
 
   const [activeIndex, setActiveIndex] = useState(0);
   const activeProduct = products[activeIndex];
 
-  // ── Background colour sync ─────────────────────────────────────────────
-  // KEY PERF FIX: We disable the CSS transition on #root/body WHILE scrolling.
-  // The 0.6s background-color transition forces a full repaint every frame
-  // during the scroll animation, which fights the GPU compositor.
-  // We only re-enable the transition for product-switching clicks.
   useEffect(() => {
     const root = document.getElementById('root');
     const applyColor = (color: string, animated: boolean) => {
       const els = [root, document.body].filter(Boolean) as HTMLElement[];
       els.forEach(el => {
-        el.style.transition = animated
-          ? 'background-color 0.6s cubic-bezier(0.4,0,0.2,1)'
-          : 'none';
+        el.style.transition = animated ? 'background-color 0.6s cubic-bezier(0.4,0,0.2,1)' : 'none';
         el.style.backgroundColor = color;
       });
     };
@@ -88,7 +96,7 @@ export default function HeroProductSection() {
   useGSAP(() => {
     const scroller = SCROLLER();
 
-    // ── Load entry ────────────────────────────────────────────────────────
+    // Load entry
     gsap.timeline()
       .fromTo(bgTextRef.current,
         { opacity:0, scale:0.92 }, { opacity:0.07, scale:1, duration:1, ease:'power3.out' })
@@ -103,38 +111,48 @@ export default function HeroProductSection() {
       .fromTo(dotsRef.current,
         { opacity:0 }, { opacity:1, duration:0.4 }, '-=0.3');
 
-    // ── Idle float ────────────────────────────────────────────────────────
+    // Idle float
     const startFloat = () => {
-      if (floatTween.current) return; // already running
+      if (floatTween.current) return;
       floatTween.current = gsap.to(ballRef.current, {
         y: -10, duration: 2.6, yoyo: true, repeat: -1, ease: 'sine.inOut',
       });
     };
-
     const killFloat = () => {
-      if (floatTween.current) {
-        floatTween.current.kill();
-        floatTween.current = null;
-      }
+      floatTween.current?.kill();
+      floatTween.current = null;
       gsap.set(ballRef.current, { y: 0 });
     };
-
     startFloat();
 
     // ── Scroll scrub ──────────────────────────────────────────────────────
     /*
-     * scrub: 0.1  vs  scrub: true
-     * ─────────────────────────────
-     * scrub:true fires synchronously on EVERY scroll event, which on a custom
-     * scroller (.site-card) can fire multiple times per frame if the user
-     * scrolls fast. This causes multiple transform writes per frame → jitter.
+     * BALL FINAL POSITION FIX:
      *
-     * scrub:0.1 uses GSAP's internal rAF ticker to interpolate to the scroll
-     * target, capped at 1 update per frame. The 0.1s lerp is imperceptibly
-     * small (6 frames at 60fps) but ensures exactly ONE transform write per
-     * rAF tick, synced to the browser's compositor.
+     * Problem: ball was being clipped at bottom because:
+     *   - Base 28vw ball at scale:1.6 = 44.8vw wide = ~25.2vh tall (on 16:9)
+     *   - xPercent:90 shifts it 25.2vw right → centre at 75.2vw
+     *   - overflow:clip on the track clips anything outside the track bounds
+     *   - The ball wasn't being clipped on the right (that's intentional)
+     *   - But the float tween's accumulated y + the scale was causing bottom clip
      *
-     * This is the standard recommendation for WebGL + ScrollTrigger.
+     * The real issue: the ball canvas is SQUARE (28vw × 28vw).
+     * When scaled to 1.6, the canvas is 44.8vw × 44.8vw.
+     * The track height is calc(100vh - 120px) ≈ 88vh.
+     * Ball canvas half-height after scale = 22.4vw = ~12.6vh.
+     * Track half-height = 44vh.
+     * Ball top = 44vh - 12.6vh = 31.4vh → fine.
+     * Ball bottom = 44vh + 12.6vh = 56.6vh → fine.
+     * But the Canvas element ITSELF is 44.8vw tall → 44.8vw > 44vh on wide screens.
+     * The canvas overflows the track height and gets clipped.
+     *
+     * FIX: reduce scale to 1.4 (39.2vw → ~22vh half) — ball stays fully
+     * within the track height on all screen ratios.
+     * Compensate by increasing xPercent to 110 to move it further right.
+     * 110% of 28vw = 30.8vw shift → centre at 80.8vw.
+     * Right edge = 80.8 + 19.6 = 100.4vw → 0.4vw right bleed. ✓
+     * Top edge = 50vh - 19.6vw * (9/16) = 50 - 11vh = 39vh → fine.
+     * Bottom edge = 50 + 11vh = 61vh → fine, within 88vh track. ✓
      */
     const tl = gsap.timeline({
       scrollTrigger: {
@@ -142,13 +160,12 @@ export default function HeroProductSection() {
         scroller,
         start: 'top top',
         end: '+=100%',
-        scrub: 0.1,           // rAF-synced, one write per frame, imperceptibly small lag
+        scrub: 0.1,
         pin: true,
         pinSpacing: true,
         anticipatePin: 1,
         onStart: () => {
           isScrolling.current = true;
-          // Disable bg transition while scrolling to remove repaint pressure
           const root = document.getElementById('root');
           if (root) root.style.transition = 'none';
           document.body.style.transition = 'none';
@@ -158,14 +175,11 @@ export default function HeroProductSection() {
           isScrolling.current = false;
           startFloat();
         },
-        onScrubComplete: () => {
-          // Re-enable bg transition after scroll settles
-          isScrolling.current = false;
-        },
+        onScrubComplete: () => { isScrolling.current = false; },
       },
     });
 
-    // Phase 1: Hero UI exits
+    // Hero UI exits
     tl
       .to(bgTextRef.current,    { opacity:0, y:-24, ease:'power2.in', duration:0.38 }, 0)
       .to(dotsRef.current,      { opacity:0, y:-16, ease:'power2.in', duration:0.28 }, 0)
@@ -175,41 +189,50 @@ export default function HeroProductSection() {
       .to(btnRef.current,       { opacity:0, y:-40, ease:'power2.in', duration:0.26 }, 0.07)
       .to(arrowsRef.current,    { opacity:0, y:-40, ease:'power2.in', duration:0.26 }, 0.09)
 
-      // Ball: single fromTo — scale + xPercent only, y never touched
+      // Ball: scale 1→1.4, shift right. y stays 0 (centred).
       .fromTo(ballRef.current,
-        { scale:1,   xPercent:0  },
-        { scale:1.6, xPercent:90, ease:'power2.inOut', duration:0.62 },
+        { scale:1,   xPercent:0   },
+        { scale:1.4, xPercent:110, ease:'power2.inOut', duration:0.62 },
         0
       )
 
-    // Phase 2: Product content enters
+    // Product content enters
       .set(productContentRef.current, { visibility:'visible' }, 0.50)
       .fromTo(eyebrowRef.current,
-        { opacity:0, y:12 }, { opacity:1, y:0, ease:'power2.out', duration:0.16 }, 0.52)
+        { opacity:0, y:10 }, { opacity:1, y:0, ease:'power2.out', duration:0.16 }, 0.52)
       .fromTo(headingRef.current,
         { opacity:0, x:-36 }, { opacity:1, x:0, ease:'power3.out', duration:0.20 }, 0.56)
-      .fromTo(taglineRef.current,
-        { opacity:0, y:10 }, { opacity:1, y:0, ease:'power2.out', duration:0.16 }, 0.68)
       .fromTo(
-        statsRef.current?.children ? Array.from(statsRef.current.children) : [],
-        { opacity:0, y:14 },
-        { opacity:1, y:0, stagger:0.03, ease:'power2.out', duration:0.14 },
-        0.76
+        statsListRef.current?.children ? Array.from(statsListRef.current.children) : [],
+        { opacity:0, y:16 },
+        { opacity:1, y:0, stagger:0.08, ease:'power2.out', duration:0.18 },
+        0.64
       );
 
   }, { scope: trackRef });
 
   return (
-    /*
-     * overflow:clip on the track prevents the scaled-up ball from
-     * adding scrollbars, without creating a new scroll context
-     * (which overflow:hidden would do, breaking ScrollTrigger pin).
-     */
     <div
       ref={trackRef}
       className="relative w-full"
+      // overflow:clip clips the ball's right bleed without creating scroll context
       style={{ height:'calc(100vh - 40px - 80px)', overflow:'clip' }}
     >
+
+      {/* ── GRID OVERLAY ─────────────────────────────────────────────────
+        Matches the reference screenshot exactly:
+        3 vertical lines (at ~33% and ~66% of width, plus the right divider)
+        2 horizontal lines (at ~40% and ~60% of height — centred zone)
+        Very subtle: rgba(255,255,255,0.05)
+      */}
+      <div className="absolute inset-0 pointer-events-none z-0" aria-hidden>
+        {/* Vertical lines */}
+        <div style={{ position:'absolute', left:'32%',  top:0, bottom:0, width:'1px', background:'rgba(255,255,255,0.05)' }}/>
+        <div style={{ position:'absolute', left:'66%',  top:0, bottom:0, width:'1px', background:'rgba(255,255,255,0.05)' }}/>
+        {/* Horizontal lines */}
+        <div style={{ position:'absolute', top:'38%',   left:0, right:0, height:'1px', background:'rgba(255,255,255,0.05)' }}/>
+        <div style={{ position:'absolute', top:'62%',   left:0, right:0, height:'1px', background:'rgba(255,255,255,0.05)' }}/>
+      </div>
 
       {/* GLOW */}
       <div ref={glowRef} className="absolute inset-0 flex items-center justify-center pointer-events-none z-0">
@@ -217,7 +240,6 @@ export default function HeroProductSection() {
           className="rounded-full"
           style={{
             width:'55vw', height:'55vw', maxWidth:'680px', maxHeight:'680px',
-            // No CSS transition on glow — GSAP handles it
             background:`radial-gradient(circle, ${activeProduct.themeColor}22 0%, transparent 68%)`,
           }}
         />
@@ -234,11 +256,11 @@ export default function HeroProductSection() {
         </h1>
       </div>
 
-      {/* ── BALL ──────────────────────────────────────────────────────────
-        will-change:transform → promoted to GPU compositing layer from frame 0.
-        contain:layout style → browser skips layout recalc when this transforms.
-        No inner wrapper needed — float and scrub both target ballRef directly,
-        but they animate different properties (y vs scale+xPercent) so no conflict.
+      {/* ── BALL ────────────────────────────────────────────────────────
+        28vw base. scale:1.4 → 39.2vw wide.
+        xPercent:110 → shifts 30.8vw right → centre at 80.8vw.
+        Ball is always vertically centred (y never changes during scrub).
+        Right edge bleeds ~0.4vw off screen. Top/bottom stay within track.
       */}
       <div className="absolute inset-0 flex items-center justify-center z-10 pointer-events-none">
         <div
@@ -254,30 +276,13 @@ export default function HeroProductSection() {
         >
           <div className="w-full h-full pointer-events-auto">
             <Loader color={activeProduct.themeColor} />
-            {/*
-              frameloop="demand" is the single biggest Canvas perf change.
-              By default R3F renders at 60fps continuously — even when nothing
-              is moving. This wastes ~16ms/frame of GPU time.
-              "demand" only renders when THREE.js invalidates (e.g. rotation,
-              color lerp). During pure CSS/GSAP scroll (no 3D changes) the
-              GPU is completely free, removing the main source of jitter.
-              The BasketballModel calls `invalidate()` via useFrame so
-              rotation and color changes still render correctly.
-            */}
             <Canvas
-              frameloop="always"  // keep "always" since ball rotates every frame
+              frameloop="always"
               style={{ width:'100%', height:'100%', display:'block' }}
               camera={{ position:[0,0,5.2], fov:42 }}
-              gl={{
-                antialias: true,
-                alpha: true,
-                // powerPreference: high-performance avoids GPU throttling
-                powerPreference: 'high-performance',
-              }}
+              gl={{ antialias:true, alpha:true, powerPreference:'high-performance' }}
               onCreated={({ gl }) => {
                 gl.setClearColor(0x000000, 0);
-                // Disable pixel ratio scaling > 1.5 — retina rendering doubles
-                // GPU load with minimal visual benefit during animation
                 gl.setPixelRatio(Math.min(window.devicePixelRatio, 1.5));
               }}
             >
@@ -294,9 +299,8 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* HERO CONTENT — fades out */}
+      {/* ── HERO CONTENT (fades out) ─────────────────────────────────── */}
       <div className="absolute inset-0 z-20 pointer-events-none">
-
         <div
           ref={dotsRef}
           className="absolute left-1/2 -translate-x-1/2 flex items-center gap-3 pointer-events-auto"
@@ -385,51 +389,84 @@ export default function HeroProductSection() {
         </div>
       </div>
 
-      {/* PRODUCT CONTENT — fades in */}
+      {/* ── PRODUCT CONTENT (fades in) ───────────────────────────────────
+        Layout matches reference screenshot exactly:
+        - Left ~32% of screen
+        - "PERFORMANCE METRICS" eyebrow with orange dot
+        - Large "ELITE CONTROL" heading
+        - Stats stacked vertically, each with left accent border
+        - Description text under each stat label
+      */}
       <div
         ref={productContentRef}
-        className="absolute inset-0 z-20 flex items-center pointer-events-none"
-        style={{ visibility:'hidden', paddingLeft:'56px', paddingRight:'50%' }}
+        className="absolute inset-0 z-20 pointer-events-none flex flex-col justify-center"
+        style={{ visibility:'hidden', paddingLeft:'56px', paddingRight:'68%' }}
       >
-        <div className="flex flex-col w-full">
-          <span ref={eyebrowRef} className="font-heading uppercase mb-3"
-            style={{ color:'#FF3C00', fontSize:'11px', letterSpacing:'0.35em' }}>
-            Performance Series
+        {/* Eyebrow */}
+        <div ref={eyebrowRef} className="flex items-center gap-2 mb-6">
+          <div style={{ width:8, height:8, borderRadius:'50%', backgroundColor:'#FF3C00', flexShrink:0 }}/>
+          <span
+            className="font-heading uppercase tracking-widest"
+            style={{ color:'#FF3C00', fontSize:'11px', letterSpacing:'0.3em' }}
+          >
+            Performance Metrics
           </span>
+        </div>
 
-          <div ref={headingRef}>
-            <h2 className="font-heading text-white uppercase"
-              style={{ fontSize:'clamp(48px, 6.5vw, 104px)', letterSpacing:'-0.025em', lineHeight:'0.88' }}>
-              ELITE<br/>CONTROL
-            </h2>
-          </div>
+        {/* Heading */}
+        <div ref={headingRef} className="mb-10">
+          <h2
+            className="font-heading text-white uppercase"
+            style={{ fontSize:'clamp(52px, 7vw, 110px)', letterSpacing:'-0.03em', lineHeight:'0.88' }}
+          >
+            ELITE<br/>CONTROL
+          </h2>
+        </div>
 
-          <p ref={taglineRef} className="font-body text-[#666] mt-5 mb-8 leading-relaxed"
-            style={{ fontSize:'13px', maxWidth:'320px' }}>
-            Engineered with microscopic composite channels for unparalleled grip.
-            Texture optimised for precision handling.
-          </p>
-
-          <div ref={statsRef} className="grid grid-cols-3 border-t"
-            style={{ borderColor:'#1e1e1e', maxWidth:'420px' }}>
-            {[
-              { value:'100%',  label:'Composite'   },
-              { value:'0.5mm', label:'Pebble Depth' },
-              { value:'1.2mm', label:'Channels'     },
-            ].map((s,i) => (
-              <div key={i} className="flex flex-col pt-4"
-                style={{ paddingLeft:i>0?'14px':0, paddingRight:'14px', borderRight:i<2?'1px solid #1a1a1a':'none' }}>
-                <span className="font-heading text-white"
-                  style={{ fontSize:'clamp(20px, 1.8vw, 32px)', letterSpacing:'-0.02em' }}>
+        {/* Stats — vertical list with left accent border */}
+        <div ref={statsListRef} className="flex flex-col gap-0">
+          {STATS.map((s, i) => (
+            <div
+              key={i}
+              className="flex flex-col"
+              style={{
+                borderLeft: '2px solid rgba(255,255,255,0.12)',
+                paddingLeft: '20px',
+                paddingTop: i === 0 ? 0 : '28px',
+                paddingBottom: '28px',
+                borderBottom: i < STATS.length - 1 ? '1px solid rgba(255,255,255,0.06)' : 'none',
+              }}
+            >
+              {/* Value */}
+              <div className="flex items-baseline gap-1 mb-1">
+                <span
+                  className="font-heading text-white"
+                  style={{ fontSize:'clamp(28px, 3vw, 48px)', letterSpacing:'-0.02em', lineHeight:1 }}
+                >
                   {s.value}
                 </span>
-                <span className="font-heading uppercase mt-1"
-                  style={{ fontSize:'9px', color:'#555', letterSpacing:'0.2em' }}>
-                  {s.label}
-                </span>
+                {s.unit && (
+                  <span className="font-heading text-white" style={{ fontSize:'clamp(14px, 1.4vw, 22px)', letterSpacing:'-0.01em' }}>
+                    {s.unit}
+                  </span>
+                )}
               </div>
-            ))}
-          </div>
+              {/* Label */}
+              <span
+                className="font-heading uppercase mb-2"
+                style={{ fontSize:'10px', color:'#666', letterSpacing:'0.22em' }}
+              >
+                {s.label}
+              </span>
+              {/* Description */}
+              <p
+                className="font-body text-[#555] leading-relaxed"
+                style={{ fontSize:'12px', maxWidth:'260px' }}
+              >
+                {s.desc}
+              </p>
+            </div>
+          ))}
         </div>
       </div>
 
